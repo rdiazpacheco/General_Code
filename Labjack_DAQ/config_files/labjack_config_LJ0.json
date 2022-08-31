@@ -18,8 +18,8 @@
         "AIN1": {
             "name": "LVDT_01",
             "index": 1,
-            "units": "volts",
-            "slope": 1.0,
+            "units": "mm",
+            "slope": 5.08,
             "offset": 0,
             "NEGATIVE_CH": 199,
             "RANGE": 0.0,
