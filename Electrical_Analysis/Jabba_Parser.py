@@ -4,7 +4,7 @@ Created on Thu Aug 25 08:32:25 2022
 Jabba CSV Output Parser
 
 @author: rdiazpacheco
-From Dan Nash
+
 """
 
 
@@ -19,12 +19,13 @@ import glob
 import os
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.widgets import Slider, Button, RadioButtons
 import scipy.interpolate as spi
 from matplotlib.widgets import TextBox
 from matplotlib.pyplot import cm
 from scipy.signal import lfilter
 from scipy.signal import butter,filtfilt
+from scipy.stats import linregress
+
 
 
 # get start time from string, returns something like time_ns() in UTC
@@ -101,13 +102,15 @@ def find_noise_per_tap(I_ABs):
     return Avg_noise
 
 def butter_lowpass_filter(cutoff, fs, order,data):
+    nyq = 0.5 * fs
     normal_cutoff = cutoff / nyq
     # Get the filter coefficients 
     b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    #y = []
     y = filtfilt(b, a, data)
     return y
 
-def find_Ic_values(a,b,c,d):
+def find_Ic_values(a,b,c,d,noise_sub,avg_npt):
     #butter low pass filter is used here
     T = 5.0         # Sample Period
     fs = 500.0       # sample rate, Hz
@@ -115,52 +118,139 @@ def find_Ic_values(a,b,c,d):
     nyq = 0.5 * fs  # Nyquist Frequency
     order = 2       # sin wave can be approx represented as quadratic
     n = int(T * fs) # total number of samples
-
-    Ic_values = np.zeros([4*len(all_files),2])
-    V_over_1 = []
-    for j in range(0,len(all_files)):
-        fname1 = (all_files[j].partition('\\')[2])
-        fname = fname1[:-4]
-        
-        for i in range(0,4):
-            #V_over1 = np.where(InVs_1["VTap"+str(i+1)+"_"+fname]>1)
-            V_over1 = np.where(butter_lowpass_filter(cutoff, fs, order,InVs_1["VTap"+str(i+1)+"_"+fname].iloc[0:int(Current_indices[j,1])])>1)
-            if len(V_over1[0]) > 1:
-                V_over_1.append(V_over1[0])
-            else:
-                V_over_1.append([0])
-                
-    for i in range(0,len(V_over_1)):
-        Ic_values[i,0] = min(V_over_1[i])
-       
-    selected_graphs = (a,b,c,d)
-    for j in range(0,len(all_files)):
-        fname1 = (all_files[j].partition('\\')[2])
-        fname = fname1[:-4]
-        for i in range(0,len(selected_graphs)):
-            if selected_graphs[i] == 1:
-                Ic_values[i+4*j,1] = InVs_1["I_"+fname].iloc[int(Ic_values[i+4*j,0])]
-            else:
-                Ic_values[i+4*j,1] = 0
+    
+    if noise_sub == 1:
+        Ic_values = np.zeros([4*len(all_files),2])
+        V_over_1 = []
+        for j in range(0,len(all_files)):
+            fname1 = (all_files[j].partition('\\')[2])
+            fname = fname1[:-4]
+            
+            for i in range(0,4):
+                #V_over1 = np.where(InVs_1["VTap"+str(i+1)+"_"+fname]>1)
+                V_over1 = np.where(butter_lowpass_filter(cutoff, fs, order,
+                                                         (InVs_1["VTap"+str(i+1)+"_"+fname].iloc[0:int(Current_indices[j,1])]-avg_npt[(4*j)+i]))>1)
+                if len(V_over1[0]) > 1:
+                    V_over_1.append(V_over1[0])
+                else:
+                    V_over_1.append([0])
+                    
+        for i in range(0,len(V_over_1)):
+            Ic_values[i,0] = min(V_over_1[i])
+           
+        selected_graphs = (a,b,c,d)
+        for j in range(0,len(all_files)):
+            fname1 = (all_files[j].partition('\\')[2])
+            fname = fname1[:-4]
+            for i in range(0,len(selected_graphs)):
+                if selected_graphs[i] == 1:
+                    Ic_values[i+4*j,1] = InVs_1["I_"+fname].iloc[int(Ic_values[i+4*j,0])]
+                else:
+                    Ic_values[i+4*j,1] = 0
+                    
+    else:    
+        Ic_values = np.zeros([4*len(all_files),2])
+        V_over_1 = []
+        for j in range(0,len(all_files)):
+            fname1 = (all_files[j].partition('\\')[2])
+            fname = fname1[:-4]
+            
+            for i in range(0,4):
+                #V_over1 = np.where(InVs_1["VTap"+str(i+1)+"_"+fname]>1)
+                V_over1 = np.where(butter_lowpass_filter(cutoff, fs, order,InVs_1["VTap"+str(i+1)+"_"+fname].iloc[0:int(Current_indices[j,1])])>1)
+                if len(V_over1[0]) > 1:
+                    V_over_1.append(V_over1[0])
+                else:
+                    V_over_1.append([0])
+                    
+        for i in range(0,len(V_over_1)):
+            Ic_values[i,0] = min(V_over_1[i])
+           
+        selected_graphs = (a,b,c,d)
+        for j in range(0,len(all_files)):
+            fname1 = (all_files[j].partition('\\')[2])
+            fname = fname1[:-4]
+            for i in range(0,len(selected_graphs)):
+                if selected_graphs[i] == 1:
+                    Ic_values[i+4*j,1] = InVs_1["I_"+fname].iloc[int(Ic_values[i+4*j,0])]
+                else:
+                    Ic_values[i+4*j,1] = 0
                 
     return Ic_values
+
+def find_n_val(a,b,c,d,avg_npt):
+    T = 5.0         # Sample Period
+    fs = 500.0       # sample rate, Hz
+    cutoff = 2      # desired cutoff frequency of the filter, Hz ,      slightly higher than actual 1.2 Hz
+    nyq = 0.5 * fs  # Nyquist Frequency
+    order = 2       # sin wave can be approx represented as quadratic
+    n = int(T * fs) # total number of samples
+    log_InV = []
+    for j in range(0,len(all_files)):
+        log_InV1 = pd.DataFrame(np.log(InVs_1.iloc[:,5*j]))
+        log_InV.append(log_InV1)
+        #log_InV[(5*j)].rename("logI_"+fname,inplace=True)
+        for i in range(0,4):
+            log_InV2 = np.log(abs(butter_lowpass_filter(cutoff, fs, order, InVs_1.iloc[:,(5*j)+i+1].iloc[int(Current_indices[j,0]):int(Current_indices[j,1])]-avg_npt[(4*j)+i])))
+            log_InV3 = pd.DataFrame(log_InV2)
+            log_InV.append(log_InV3)
+            #the vtaps after the filter cannot conserve their native index for now    
+        log_InVf = pd.concat(log_InV, axis=1, ignore_index= False) 
+
+    selected_graphs = (a,b,c,d)
+    slopes =  np.zeros([4*len(all_files),1])
+    for j in range(0,len(all_files)):        
+        for i in range(0,4):
+            if selected_graphs[i] == 1:
+                slope,intercept,rval,pval,stderrrenamestderr = linregress(log_InVf.iloc[:,5*j].iloc[int(Current_indices[j,0]):int(Current_indices[j,1])],
+                                       log_InVf.iloc[0:int(Current_indices[j,1])-int(Current_indices[j,0]),((5*j)+i+1)])
+                slopes[4*j+i] = slope
+            else:
+                slopes[4*j+i] = 0
+        
+    return slopes
+
+
+def assign_names(n1, n2, n3, n4):
+    vtap_names = []
+    vtap_names.append(str(n1))
+    vtap_names.append(str(n2))
+    vtap_names.append(str(n3))
+    vtap_names.append(str(n4))
+    return vtap_names
 
 #%% Extract all data from a day
 folder_path = filedialog.askdirectory()
 all_files = glob.glob(os.path.join(folder_path, "*.csv"))
 InVs_1 = Extract_Voltages(all_files)
+
+# Cleaning Data: subtracting linear noise
+Noice_ind = noise_range(200, 500)
+Avg_noises = find_noise_per_tap(Noice_ind)
+
+# Find Ic and n value
 Current_indices = find_start_end_ramp(200)
+Ic_values = find_Ic_values(1, 1, 0, 1, 1,Avg_noises)
 
-# Filtering noise, filtering from 300 - 600 amps
-Noice_indices = noise_range(300, 600)
-Avg_noices = find_noise_per_tap(Noice_indices)
-Ic_values = find_Ic_values(0, 0, 0, 1)
+slopes = find_n_val(1,1,0,1,Avg_noises)
 
-            
+
+
+
 #%%
+#20220816_003 abd 019 are not working. Upon opening and saving the csv on excel. Check on text editor next
+
+
+#%%
+
+#vtns = assign_names("Lead 1", "Lead 2", "PIT-V Joint", "Overall") #for 20220816
+#vtns = assign_names("Lead 1", "Lead 2", "PIT-V Joint", "Cable: A1") #for 20220817
+vtns = assign_names("Cable: A1", "Cable: A2", "PIT-V Joint", "Overall") #for 20220819
+ 
+
 for k in range(0,len(all_files)):
 #for k in range(0,4):
-    fig, ax = plt.subplots(2,2, figsize=(25, 17))
+    fig, ax = plt.subplots(2,2, figsize=(25, 35))
 
     fname1 = (all_files[k].partition('\\')[2])
     fname = fname1[:-4]
@@ -174,9 +264,10 @@ for k in range(0,len(all_files)):
 
     for j in range(0,2):
         for i in range(0,2):
-            ax[i,j].set_title("Channel "+str(i+1+2*j),fontsize=20)
+            ax[i,j].set_title("Channel "+str(i+1+(2*j))+" - "+ vtns[i+(2*j)],fontsize=20)
             ax[i,j].set_xlabel("Current [A]", fontsize=15)
-            ax[i,j].set_ylabel("Electric Field [V/cm]", fontsize=15)
+            ax[i,j].set_ylabel("Electric Field [uV/cm]", fontsize=15)
+            #ax[i,j].set_xscale('log')
             leg = ax[i,j].legend(fontsize=20)
             leg = ax[i,j].legend(fontsize=20)
     
@@ -197,13 +288,14 @@ for k in range(0,len(all_files)):
         for i in range(0,2):
             c = next(color)           
             IV_1, = ax[i,j].plot(InVs_1["I_"+fname].iloc[int(Current_indices[k,0]):int(Current_indices[k,1])],
-                       InVs_1["VTap"+str(i+1+2*j)+"_"+fname].iloc[int(Current_indices[k,0]):int(Current_indices[k,1])],
+                       InVs_1["VTap"+str(i+1+2*j)+"_"+fname].iloc[int(Current_indices[k,0]):int(Current_indices[k,1])]-Avg_noises[(4*j)+i],
                        label="Voltage Tap", linewidth = 3,c = c)
             c = next(color) 
             c = next(color) 
             IV_1, = ax[i,j].plot(InVs_1["I_"+fname].iloc[int(Current_indices[k,0]):int(Current_indices[k,1])],
-                        butter_lowpass_filter(cutoff, fs, order,InVs_1["VTap"+str(i+1+2*j)+"_"+fname].iloc[int(Current_indices[k,0]):int(Current_indices[k,1])]),
-                        label="2Hz LPF, IC = "+ str(Ic_values[4*k+2*j+i,1]), linewidth = 3,c = c)
+                        butter_lowpass_filter(cutoff, fs, order,InVs_1["VTap"+str(i+1+2*j)+"_"+fname]
+                                              .iloc[int(Current_indices[k,0]):int(Current_indices[k,1])]-Avg_noises[(4*j)+i]),
+                        label="2Hz LPF, IC = "+ str(Ic_values[4*k+2*j+i,1]) + ", n = " + str(slopes[4*k+2*j+i,0])[0:3], linewidth = 3,c = c)
             
             OneuV = ax[i,j].plot(InVs_1["I_"+fname].iloc[int(Current_indices[k,0]):int(Current_indices[k,1])],
                                  SC_parameter, label="1uV/cm", color='red', linewidth=4, linestyle=':')
@@ -214,5 +306,20 @@ for k in range(0,len(all_files)):
   
 
 
+#%% checking n value calculations
 
+
+# importing package
+import matplotlib.pyplot as plt
+for j in range(0,len(all_files)):
+    for i in range(0,4):
+        plt.plot(log_InVf.iloc[int(Current_indices[j,0]):int(Current_indices[j,1]),0],
+                 log_InVf.iloc[0:int(Current_indices[j,1])-int(Current_indices[j,0]),i+1], label = "line " + str(i+1))
+    #plt.plot(y, x, label = "line 2")
+plt.legend(),
+plt.show()
+
+
+
+#%%
 

@@ -1,0 +1,30 @@
+{
+    "deviceType": "T4",
+    "connectionType": "ETHERNET",
+    "identifier": "192.168.1.214",
+    "fs": 200.0,
+    "channels": {
+        "AIN0": {
+            "name": "Heat_VD_01",
+            "index": 0,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0,
+            "NEGATIVE_CH": 199,
+            "RANGE": 0.0,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        },
+        "AIN6": {
+            "name": "Shunt_Resistor",
+            "index": 6,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0,
+            "NEGATIVE_CH": 199,
+            "RANGE": 0.0,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        }
+    }
+}
