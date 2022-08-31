@@ -15,9 +15,9 @@
             "RESOLUTION_INDEX": 0,
             "SETTLING_US": 0
         },
-        "AIN6": {
-            "name": "Shunt_Resistor",
-            "index": 6,
+        "AIN1": {
+            "name": "LVDT_01",
+            "index": 1,
             "units": "volts",
             "slope": 1.0,
             "offset": 0,
