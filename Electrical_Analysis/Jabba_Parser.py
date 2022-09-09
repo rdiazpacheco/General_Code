@@ -25,8 +25,16 @@ from matplotlib.pyplot import cm
 from scipy.signal import lfilter
 from scipy.signal import butter,filtfilt
 from scipy.stats import linregress
-
-
+import scipy as scipy
+from scipy.optimize import curve_fit
+import math
+import sys, os, argparse
+from lmfit import minimize, Parameters, Parameter, report_fit, Model
+import peakutils
+from scipy.interpolate import interp1d
+#import xlsxwriter
+import pdb # debugging tool
+import re
 
 # get start time from string, returns something like time_ns() in UTC
 def parse_t0(csv_row):
@@ -94,11 +102,23 @@ def noise_range(Istart,Iend):
          
     return I_ABs
 
-def find_noise_per_tap(I_ABs):
+def find_noise_per_tap(I_ABs,filt_before):
+    T = 5.0         # Sample Period
+    fs = 500.0       # sample rate, Hz
+    cutoff = 2      # desired cutoff frequency of the filter, Hz ,      slightly higher than actual 1.2 Hz
+    nyq = 0.5 * fs  # Nyquist Frequency
+    order = 2       # sin wave can be approx represented as quadratic
+    n = int(T * fs) # total number of samples
+    
     Avg_noise = []
-    for j in range(0,len(all_files)):
-        for i in range(0,4):
-            Avg_noise.append(np.mean(InVs_1.iloc[int(I_ABs[j,0]):int(I_ABs[j,1]),j*5+i+1]))        
+    if filt_before == 1:    
+        for j in range(0,len(all_files)):
+            for i in range(0,4):
+                Avg_noise.append(np.mean(butter_lowpass_filter(cutoff, fs, order,InVs_1.iloc[int(I_ABs[j,0]):int(I_ABs[j,1]),j*5+i+1])))   
+    else:
+        for j in range(0,len(all_files)):
+            for i in range(0,4):
+                Avg_noise.append(np.mean(InVs_1.iloc[int(I_ABs[j,0]):int(I_ABs[j,1]),j*5+i+1]))
     return Avg_noise
 
 def butter_lowpass_filter(cutoff, fs, order,data):
@@ -129,7 +149,7 @@ def find_Ic_values(a,b,c,d,noise_sub,avg_npt):
             for i in range(0,4):
                 #V_over1 = np.where(InVs_1["VTap"+str(i+1)+"_"+fname]>1)
                 V_over1 = np.where(butter_lowpass_filter(cutoff, fs, order,
-                                                         (InVs_1["VTap"+str(i+1)+"_"+fname].iloc[0:int(Current_indices[j,1])]-avg_npt[(4*j)+i]))>1)
+                                                         (InVs_1["VTap"+str(i+1)+"_"+fname].iloc[0:int(Current_indices[j,1])]))-avg_npt[(4*j)+i]>1)
                 if len(V_over1[0]) > 1:
                     V_over_1.append(V_over1[0])
                 else:
@@ -219,14 +239,40 @@ def assign_names(n1, n2, n3, n4):
     vtap_names.append(str(n4))
     return vtap_names
 
+
+def find_fit_func(xdata,ydata,I_exp_start,a,b,c,d):
+    selected_graphs = (a,b,c,d)
+    exp_coeff = np.zeros((len(selected_graphs),2))
+    I_exp_ind = np.where(xdata == I_exp_start)
+    
+    if I_exp_ind[0][0] > 0:
+        for t in range(0,len(selected_graphs)):
+            if selected_graphs[t] == 1:
+                x = InVs_1["I_"+fname].iloc[int(Current_indices[k,0]):int(Current_indices[k,1])]
+                y = pd.Series(abs(butter_lowpass_filter(cutoff, fs, order,InVs_1["VTap"+str(i+1+2*j)+"_"+fname]
+                                      .iloc[int(Current_indices[k,0]):int(Current_indices[k,1])])-Avg_noises[(4*j)+i]))
+                a_ex, b_ex = np.polyfit(x[I_exp_start:len(x)], np.log(y[I_exp_start:len(x)]), 1, w=np.sqrt(y[I_exp_start:len(x)]))
+                exp_coeff[t,0] = a_ex
+                exp_coeff[t,1] = b_ex                
+            else:
+                exp_coeff[t,0] = 0
+                exp_coeff[t,1] = 0                
+    else: 
+        exp_coeff[:,0] = 0
+        exp_coeff[:,1] = 0
+    return exp_coeff
+
+def func(x, a, b, c):
+    return np.exp(b) * np.exp(a * x) + c
 #%% Extract all data from a day
 folder_path = filedialog.askdirectory()
 all_files = glob.glob(os.path.join(folder_path, "*.csv"))
 InVs_1 = Extract_Voltages(all_files)
 
 # Cleaning Data: subtracting linear noise
-Noice_ind = noise_range(200, 500)
-Avg_noises = find_noise_per_tap(Noice_ind)
+Noice_ind = noise_range(200, 800)
+Avg_noises = find_noise_per_tap(Noice_ind,1)
+#Avg_noises_f = find_noise_per_tap_f(Noice_ind)
 
 # Find Ic and n value
 Current_indices = find_start_end_ramp(200)
@@ -306,20 +352,122 @@ for k in range(0,len(all_files)):
   
 
 
-#%% checking n value calculations
+#%% checking different fits
+Noice_ind = noise_range(200, 900)
+Avg_noises1 = find_noise_per_tap(Noice_ind,0)
+Avg_noises2 = find_noise_per_tap(Noice_ind,1)
+
+Current_indices = find_start_end_ramp(200)
+Ic_values = find_Ic_values(1, 1, 0, 1, 1,Avg_noises)
 
 
-# importing package
-import matplotlib.pyplot as plt
-for j in range(0,len(all_files)):
-    for i in range(0,4):
-        plt.plot(log_InVf.iloc[int(Current_indices[j,0]):int(Current_indices[j,1]),0],
-                 log_InVf.iloc[0:int(Current_indices[j,1])-int(Current_indices[j,0]),i+1], label = "line " + str(i+1))
-    #plt.plot(y, x, label = "line 2")
-plt.legend(),
-plt.show()
+j= 0
+i=0
+k= 5 
+fname1 = (all_files[k].partition('\\')[2])
+fname = fname1[:-4]
+
+   #butter low pass filter
+T = 5.0         # Sample Period
+fs = 500.0       # sample rate, Hz
+cutoff = 2      # desired cutoff frequency of the filter, Hz ,      slightly higher than actual 1.2 Hz
+nyq = 0.5 * fs  # Nyquist Frequency
+order = 2       # sin wave can be approx represented as quadratic
+n = int(T * fs) # total number of samples
+
+    
+test_I_val = InVs_1["I_"+fname].iloc[int(Current_indices[k,0]):int(Current_indices[k,1])]
+
+
+test_V_val = InVs_1["VTap"+str(i+1)+"_"+fname].iloc[int(Current_indices[k,0]):int(Current_indices[k,1])]-Avg_noises[(4*j)+i]
+
+test_V_val_clean = pd.Series(butter_lowpass_filter(cutoff, fs, order,InVs_1["VTap"+str(i+1+2*j)+"_"+fname]
+                      .iloc[int(Current_indices[k,0]):int(Current_indices[k,1])]))
+test_V_val_clean_minus_noice = pd.Series(butter_lowpass_filter(cutoff, fs, order,InVs_1["VTap"+str(i+1+2*j)+"_"+fname]
+                      .iloc[int(Current_indices[k,0]):int(Current_indices[k,1])])-Avg_noises1[(4*j)+i])
+test_V_val_clean_minus_noice_f = pd.Series(butter_lowpass_filter(cutoff, fs, order,InVs_1["VTap"+str(i+1+2*j)+"_"+fname]
+                      .iloc[int(Current_indices[k,0]):int(Current_indices[k,1])]-Avg_noises2[(4*j)+i]))
+test_0_val = np.zeros((len(test_I_val),1))
+test_1_val = np.zeros((len(test_I_val),1))
+test_1_val[:] = 1
+#%
+plt.figure(figsize=(30, 20), dpi=100)
+plt.plot(test_I_val,test_V_val,label = "raw")
+plt.plot(test_I_val,test_V_val_clean,label = "LPF")
+plt.plot(test_I_val,test_V_val_clean_minus_noice,label = "LPF minus noise")
+plt.plot(test_I_val,test_V_val_clean_minus_noice_f,label = "LPF minus noise_f")
+plt.plot(test_I_val,test_0_val,label = "0 V",color='red', linewidth=4, linestyle=':')
+plt.plot(test_I_val,test_1_val,label = "1 V",color='red', linewidth=4, linestyle=':')
+plt.title(fname,fontsize=25)
+
+
+#test_V_val_clean_minus_noice_f
+plt.legend(fontsize = 20)
+#%% Find exponetial fit
+from scipy.optimize import curve_fit
+j= 0
+i=0
+k= 5 
+fname1 = (all_files[k].partition('\\')[2])
+fname = fname1[:-4]
+
+   #butter low pass filter
+T = 5.0         # Sample Period
+fs = 500.0       # sample rate, Hz
+cutoff = 2      # desired cutoff frequency of the filter, Hz ,      slightly higher than actual 1.2 Hz
+nyq = 0.5 * fs  # Nyquist Frequency
+order = 2       # sin wave can be approx represented as quadratic
+n = int(T * fs) # total number of samples
+
+Noice_ind = noise_range(200, 900)
+Avg_noises = find_noise_per_tap(Noice_ind,1)
+
+x = InVs_1["I_"+fname].iloc[int(Current_indices[k,0]):int(Current_indices[k,1])]
+y = pd.Series(22*abs(butter_lowpass_filter(cutoff, fs, order,InVs_1["VTap"+str(i+1+2*j)+"_"+fname]
+                      .iloc[int(Current_indices[k,0]):int(Current_indices[k,1])])-Avg_noises[(4*j)+i]))
+
+#aex2, bex2 = np.polyfit(x, np.log(y), 1, w=np.sqrt(y))
+aex2, bex2 = np.polyfit(x[3000:len(x)], np.log(y[3000:len(x)]), 1, w=np.sqrt(y[3000:len(x)]))
+
+def find_fit_func(xdata,ydata,I_exp_start):
+    x = InVs_1["I_"+fname].iloc[int(Current_indices[k,0]):int(Current_indices[k,1])]
+    y = pd.Series(abs(butter_lowpass_filter(cutoff, fs, order,InVs_1["VTap"+str(i+1+2*j)+"_"+fname]
+                          .iloc[int(Current_indices[k,0]):int(Current_indices[k,1])])-Avg_noises[(4*j)+i]))
+    a_ex, b_ex = np.polyfit(x[I_exp_start:len(x)], np.log(y[I_exp_start:len(x)]), 1, w=np.sqrt(y[I_exp_start:len(x)]))
+
+    return a_ex, b_ex
+
+def func(x, a, b, c):
+    return np.exp(b) * np.exp(a * x) + c
+
+
+test_I_val = InVs_1["I_"+fname].iloc[int(Current_indices[k,0]):int(Current_indices[k,1])]
+test_V_val = 22*InVs_1["VTap"+str(i+1)+"_"+fname].iloc[int(Current_indices[k,0]):int(Current_indices[k,1])]-Avg_noises[(4*j)+i]
+
+test_V_val_clean = 22*pd.Series(butter_lowpass_filter(cutoff, fs, order,InVs_1["VTap"+str(i+1+2*j)+"_"+fname]
+                      .iloc[int(Current_indices[k,0]):int(Current_indices[k,1])]))
+test_V_val_clean_minus_noice = 22*pd.Series(butter_lowpass_filter(cutoff, fs, order,InVs_1["VTap"+str(i+1+2*j)+"_"+fname]
+                      .iloc[int(Current_indices[k,0]):int(Current_indices[k,1])])-Avg_noises[(4*j)+i])
+test_0_val = np.zeros((len(test_I_val),1))
+test_1_val = np.zeros((len(test_I_val),1))
+test_1_val[:] = 1
+#%
+plt.figure(figsize=(30, 20), dpi=100)
+plt.plot(test_I_val,test_V_val,label = "raw")
+plt.plot(test_I_val,test_V_val_clean,label = "LPF", linewidth = 4)
+plt.plot(test_I_val,test_V_val_clean_minus_noice,label = "LPF minus noise", linewidth = 4)
+
+#plt.plot(x,func(x,aex1,bex1,0),label="fitted w=0", color = "green", linewidth = 4)
+plt.plot(x,func(x,aex2,bex2,0),label="fitted, n = " + "{:.3f}".format(aex2), color = "red", linewidth = 4)
+        
+plt.plot(test_I_val,test_0_val,label = "0 V",color='red', linewidth=4, linestyle=':')
+plt.plot(test_I_val,test_1_val,label = "1 V",color='red', linewidth=4, linestyle=':')
+plt.title(fname,fontsize=25)
+
+
+#test_V_val_clean_minus_noice_f
+plt.legend(fontsize = 20)
 
 
 
-#%%
 
