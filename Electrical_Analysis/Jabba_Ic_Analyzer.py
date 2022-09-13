@@ -180,14 +180,7 @@ def assign_names(n1, n2, n3, n4):
     return vtap_names
 
 def find_Ic_values(a,b,c,d,avg_npt):
-    #butter low pass filter is used here
-    T = 5.0         # Sample Period
-    fs = 500.0       # sample rate, Hz
-    cutoff = 1.2      # desired cutoff frequency of the filter, Hz ,      slightly higher than actual 1.2 Hz
-    nyq = 0.5 * fs  # Nyquist Frequency
-    order = 2       # sin wave can be approx represented as quadratic
-    n = int(T * fs) # total number of samples
-        
+           
     Ic_values = np.zeros([4*len(all_files),2])
     V_over_1 = []
     for j in range(0,len(all_files)):
@@ -224,6 +217,17 @@ def find_Ic_values(a,b,c,d,avg_npt):
 def func(x, Vc, Ic, V_floor, n):
     return Vc*(x/Ic)**n + V_floor
 #%%
+#####
+####
+#Here you can visualize all the taps in all the files. It will open as many pictures as there a files. Run this section to pull the data.
+# Then run the section below to visualize 
+cutoff = 1     # desired cutoff frequency of the filter, Hz ,      slightly higher than actual 1.2 Hz
+T = 5.0         # Sample Period
+fs = 500.0       # sample rate, Hz
+cutoff = 1     # desired cutoff frequency of the filter, Hz ,      slightly higher than actual 1.2 Hz
+nyq = 0.5 * fs  # Nyquist Frequency
+order = 2       # sin wave can be approx represented as quadratic
+n = int(T * fs) # total number of samples
 #extract all data from a folder
 folder_path = filedialog.askdirectory()
 all_files = glob.glob(os.path.join(folder_path, "*.csv"))
@@ -236,8 +240,11 @@ Current_indices, Imax = find_start_end_ramp(200)
 Ic_vals, Ic_avg = find_Ic_values(0,0,1,0,Avg_noises)
 
 
+
 #%%
-#determine which tap is the relevant one
+# Run this section to visualize all your taps
+
+# give names to the taps
 vtns = assign_names("Cable: A1", "Cable: A2", "PIT-V Joint", "Overall") #for 20220819
  
 
@@ -297,8 +304,10 @@ for k in range(0,len(all_files)):
     for j in range(0,2):
         for i in range(0,2):           
             leg = ax[i,j].legend(fontsize=15)
-#%% Glycon III - 20220329, Tap 3
-#extract all data from a folder
+
+##% extract all data from a folder
+# This section is the same as above
+
 sample_name = "Glycon II: "
 folder_path = filedialog.askdirectory()
 all_files = glob.glob(os.path.join(folder_path, "*.csv"))
@@ -306,10 +315,24 @@ InVs_1 = Extract_Voltages(all_files)
 #For Glycon II
 #InVs_1 = Extract_Voltages2(all_files)
 #%%
+# This will focus on one tap and do all the fittings and find Ic and N values (the fitting)
+# 1. Select tap number (1,2,3,4)
+# Select a guess for the n value, usually something between 5-10. You can reiterate to get a better fit. If it's too far (over or under, the fit will be obviosly bad)
+# give the sample a name "queen snake"
+# and that's it. It will average all the runs of the same kind of the same filter and do all the analysis.
+
 #Select noice range
-sample_name = "Glycon II: "
-tap_of_interest = 3
-n_guess = 13
+sample_name = "Queen Snake: "
+tap_of_interest = 4
+n_guess =5
+
+#butter low pass filter is used here
+T = 5.0         # Sample Period
+fs = 500.0       # sample rate, Hz
+cutoff = 1     # desired cutoff frequency of the filter, Hz ,      slightly higher than actual 1.2 Hz
+nyq = 0.5 * fs  # Nyquist Frequency
+order = 2       # sin wave can be approx represented as quadratic
+n = int(T * fs) # total number of samples
 
 Noice_ind = noise_range(200, 1000)
 Avg_noises, n_p_t_avg = find_noise_per_tap(Noice_ind,1)
@@ -321,8 +344,10 @@ Avg_InV_tap = get_average_of_tap(tap_of_interest)
 
 #first guess 
 first_guess = [1, Ic_avg[int(tap_of_interest)-1], n_p_t_avg[int(tap_of_interest)-1],n_guess]
+#first_guess = [1, 2500, n_p_t_avg[int(tap_of_interest)-1],n_guess]
 #fit function
-popt, pcov = curve_fit(func, Avg_InV_tap.iloc[:,0], Avg_InV_tap.iloc[:,1], p0=first_guess)
+#popt, pcov = curve_fit(func, Avg_InV_tap.iloc[:,0], Avg_InV_tap.iloc[:,1], p0=first_guess)
+popt, pcov = curve_fit(func, butter_lowpass_filter(cutoff, fs, order,Avg_InV_tap.iloc[:,0]), Avg_InV_tap.iloc[:,1], p0=first_guess)
 
 fit_x = np.linspace(200,Imax,3000)
 fit_y = func(fit_x, *popt)
@@ -342,7 +367,7 @@ ax.tick_params(axis='y', labelsize=20)
 
 #plt.figure(figsize = (30,18))
 
-ax.set_ylim((-1,10))
+ax.set_ylim((-1,80))
 ax.set_xlim((50,int(Imax+50)))
 ax.set_xlabel("Current [A]", fontsize=15)
 ax.set_ylabel("Electric Field [uV/cm]", fontsize=15)
@@ -366,7 +391,7 @@ ax.axvline(x = round(popt[1],1), color = 'red', linewidth = 2,linestyle=':')
 
 ax.legend(fontsize = 20)
 
-
+fig.show()
 
 #%%
 

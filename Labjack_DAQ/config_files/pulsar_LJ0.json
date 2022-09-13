@@ -2,5 +2,5 @@
     "HOST": "hq-influxdb.ad.cfsenergy.com",
     "PORT": 8086,
     "DB": "r&d",
-    "MEAS": "QMC_heater"
+    "MEAS": "Queen Snake Expt. 0"
 }

@@ -4,22 +4,22 @@
     "identifier": "192.168.1.214",
     "fs": 200.0,
     "channels": {
-        "AIN0": {
-            "name": "Heat_VD_01",
-            "index": 0,
-            "units": "volts",
-            "slope": 1.0,
+        "AIN1": {
+            "name": "LVDT_1",
+            "index": 1,
+            "units": "mm",
+            "slope": 5.08,
             "offset": 0,
             "NEGATIVE_CH": 199,
             "RANGE": 0.0,
             "RESOLUTION_INDEX": 0,
             "SETTLING_US": 0
         },
-        "AIN1": {
-            "name": "LVDT_01",
-            "index": 1,
-            "units": "mm",
-            "slope": 5.08,
+        "AIN2": {
+            "name": "Load_Cell_01",
+            "index": 2,
+            "units": "kg",
+            "slope": 2,
             "offset": 0,
             "NEGATIVE_CH": 199,
             "RANGE": 0.0,
