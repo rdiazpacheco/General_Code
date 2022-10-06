@@ -125,15 +125,15 @@ def fit_data(shot_number, baseline_min, baseline_max, current_thresh, plot_resul
 		# Return the quantity that is being minimized in the fit
 			return (model - data)
 
-		def fit_fc_resistive(params, x, data):
-			Ic = params['Ic'].value
-			n = params['n'].value
-			V_floor = params['V_floor']
-			R = params['R']
-
-			model = Vc*(x/Ic)**n + V_floor + x*R
-
-			return model - data #that's what you want to minimize
+    		def fit_fc_resistive(params, x, data):
+    			Ic = params['Ic'].value
+    			n = params['n'].value
+    			V_floor = params['V_floor']
+    			R = params['R']
+    
+    			model = Vc*(x/Ic)**n + V_floor + x*R
+    
+    			return model - data #that's what you want to minimize
         
         
 		# Create initial guesses for the free parameters

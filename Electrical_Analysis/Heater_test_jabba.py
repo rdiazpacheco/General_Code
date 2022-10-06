@@ -51,17 +51,19 @@ def Extract_Voltages_only(all_files,No_of_taps):
         frame = pd.concat(li, axis=1, ignore_index= False)        
     return frame
 
-def find_powered_sections(min_height, on_duration,data,columns_per_file):    
+def find_powered_sections(data,columns_per_file,min_height, prominence, on_duration):    
     li = []
-    for i in range(0,int(len(all_files)/columns_per_file)):
-        
-        On_indx, pk_hgts = find_peaks(data.iloc[:,columns_per_file*i+1],5)
+    
+    for i in range(0,int(len(data.iloc[0,:])/columns_per_file)):
+        fname1 = (all_files[i].partition('\\')[2])
+        fname = fname1[:-4]        
+        On_indx, pk_hgts = find_peaks(data.iloc[:,columns_per_file*i+1], height = min_height, prominence = prominence)
         li.append(pd.Series(On_indx))
-        li[3*i].rename("Off_set " + str(i),inplace = True)
+        li[3*i].rename(fname + "_ON",inplace = True)
         li.append(pd.Series(On_indx + on_duration))
-        li[3*i+1].rename("On_set " + str(i),inplace = True)
+        li[3*i+1].rename(fname + "_OFF",inplace = True)
         li.append(pd.Series(pk_hgts["peak_heights"]))
-        li[3*i+2].rename("Peak_Height " + str(i),inplace = True)
+        li[3*i+2].rename(fname + "_PkHght",inplace = True)
         frame = pd.concat(li, axis=1, ignore_index= False)   
     
     return frame
@@ -86,7 +88,7 @@ def Extract_TVI(list_of_files):
     li = []
     for i in range(0,len(list_of_files)):
         fname1 = fname1 = (list_of_files[i].partition('\\')[2])
-        fname = fname1[:-6]
+        fname = fname1[:-4]
         df = pd.read_table(list_of_files[i], delim_whitespace=True)        
         li.append(df.iloc[:,0]) #time stamp
         li.append(df.iloc[:,1]) #voltgae
@@ -186,11 +188,11 @@ data_strain = Extract_TVI(all_files)
 #%%
 
 on_time = 80
-On_Off_indexes = find_powered_sections(5,-on_time,data_strain,3)
+On_Off_indexes = find_powered_sections(data_strain, 3, 5, 0.5, -80)
 #V_avgs = find_average_voltages(On_Off_indexes,data_strain,3)
 
 
-#%% Find peaks
+#%% This will open all the files and show how the peaks found
 for i in range(0,len(all_files)):
     fname1 = (all_files[i].partition('\\')[2])
     plt.figure(figsize = (15,15))
@@ -200,17 +202,97 @@ for i in range(0,len(all_files)):
     time = np.arange(len(data_strain.iloc[:,3*i+1]))
     
     plt.plot(time,data_strain.iloc[:,3*i+1])
-    plt.scatter(time[peaks],data_strain.iloc[peaks,3*i+1], marker = 'x', color = 'tab:red')
+    plt.scatter(time[peaks],data_strain.iloc[peaks,3*i+1], marker = 'x', color = 'tab:red', s = 50)
     #plt.scatter(np.arange(len(data_strain.iloc[peaks,1])),data_strain.iloc[peaks,1])
     plt.show()
-    
-    
-#%% comparing Strain vs no strain
+
+#%% Function to get file names only 
+all_files_names = []
 li = []
 for i in range(0,len(all_files)):
-    li.append(all_files[i].partition('\\')[2][:-6])
-all_sample_names = pd.DataFrame(li)
+    
+    fname1 = all_files[i].partition('\\')[2]
+    li.append(pd.Series([fname1[:-4],fname1[8:16],fname1[16:-4],fname1[18:-8],fname1[-7:-4]]))
+    
+    li[i].rename(int(fname1[-7:-4]),inplace=True)
+    
+    #all_files_names.append(li, axis = 1, ignore_index = True)
+    
+all_fn_df = pd.concat(li, axis = 1)
 
+#%%
+#find all no strain 
+all_fn_df.iloc[2,:].filter(like = 'p5')
+
+
+#%% pulling data with indexes
+
+data_strain.loc[On_Off_indexes[1,all_fn_df.loc[:,25].iloc[0]+"_ON"]:On_Off_indexes[1,all_fn_df.loc[:,25].iloc[0]+"_OFF"],all_fn_df.loc[:,25].iloc[0]]
+    
+#%% comparing Strain vs no strain
+#first panel will show all of the Strained (N files)
+# second panel will show all the Unstrained (Npn files)
+# the last panel will show the cycling progression in Resitance values
+
+#General settings
+fig, ax = plt.subplots(3,1, figsize = (30,20),constrained_layout = True)
+for k in range(0,len(all_files):
+    fname1 = (all_files[2*k+1].partition('\\')[2])
+    fname = fname1[:-8]
+    Current = fname1[9:-17]
+        
+    #general set up     
+    fig.suptitle(fname1[:-8],fontsize=25)
+    for i in range(0,3):
+        ax[i].tick_params(axis='x', labelsize=15)
+        ax[i].tick_params(axis='y', labelsize=15)
+    
+    #GRAPH 1
+    #Graphing the whole sequence with the ramp points: \
+    ax[0].set_title("Strained Cycles", fontsize = 20)
+    ax[0].set_ylabel("Voltage [V]", fontsize = 15)
+    ax[0].set_xlabel("Time [s]", fontsize = 15)
+    #ax[0].set_ylim(-1,int(max(Vs_1.iloc[:,2*k+1]))+2)
+    
+    #Data from repeat 
+    time = np.linspace(1,test_duration,len(data_strain.iloc[:,2*k+1]))
+    ax[0].plot(time,Vs_1.iloc[:,2*k+1],linewidth = 1)
+    ax[0].plot(OO_indx.iloc[:,3*k]/(len(Vs_1.iloc[:,2*k+1])/test_duration),Vs_1.iloc[:,2*k+1].iloc[OO_indx.iloc[:,3*k]],"x", label = "Peaks of Voltage")
+    for i in range(0,len(OO_indx)):
+        ax[0].axvline(x = OO_indx.iloc[:,3*k+1].iloc[i]/(len(Vs_1.iloc[:,2*k+1])/test_duration), ymin = 0.05, ymax = 0.95, linestyle = '--', color = 'r',)
+        ax[0].axvline(x = OO_indx.iloc[:,3*k].iloc[i]/(len(Vs_1.iloc[:,2*k+1])/test_duration), ymin = 0.05, ymax = 0.95, linestyle = '--', color = 'r',)
+    #ax[0].legend(fontsize = 20)
+#%%      
+    #GRAPH 2
+    #Graphing all the traces
+    ax[1].set_title("Intra-powered", fontsize = 20)
+    ax[1].set_ylabel("Voltage [V]", fontsize = 15)
+    ax[1].set_xlabel("Time [s]", fontsize = 15)
+    
+    for i in range(0,len(OO_indx)):
+        ramp_time = np.linspace(0,on_time/10,abs(int(OO_indx.iloc[:,3*k+1].iloc[i]-OO_indx.iloc[:,3*k].iloc[i])))
+        ax[1].plot(ramp_time,Vs_1.iloc[:,2*k+1].iloc[int(OO_indx.iloc[:,3*k+1].iloc[i]):int(OO_indx.iloc[:,3*k].iloc[i])])
+    
+    #GRAPH 3
+    #Graph the resistance vs cycles
+    ax[2].set_title("Resistance through Cycles", fontsize = 20)
+    ax[2].set_ylabel("Resistance [Ohms]", fontsize = 15)
+    ax[2].set_xlabel("Cycle Number", fontsize =15)
+    ax[2].set_ylim(max(V_avgs.iloc[:,2*k+1]/int(Current))-0.05,max(V_avgs.iloc[:,2*k+1]/int(Current))+0.05)
+    
+    cycles = np.arange(len(OO_indx.iloc[:,3*k+2]))
+    ax[2].scatter(cycles,OO_indx.iloc[:,3*k+2]/int(Current), label = "Max resistance per cycle", s = 60)
+    ax[2].axhline(y= np.round(V_avgs.iloc[0,2*k]/int(Current),3), 
+                  label = "Avg Highest Resistance: " + str(np.round(V_avgs.iloc[0,2*k]/int(Current),2)) + " Ohms",
+                  linestyle  = "--", color = "tab:red", linewidth = 3)
+    ax[2].scatter(cycles,V_avgs.iloc[:,2*k+1]/int(Current), label = "Avg resiatance in-cycle", s = 60)
+    ax[2].axhline(y= np.round(np.mean(V_avgs.iloc[:,2*k+1]/int(Current)),3), 
+                  label = "Avg resistance in-cycle: " + str(np.round(np.mean(V_avgs.iloc[:,2*k+1]/int(Current)),2)) + " Ohms", 
+                  linestyle  = "--", color = "tab:orange", linewidth = 3)
+    
+    ax[2].legend(fontsize = 20)
+    
+    plt.show()
 
 #%%
 
