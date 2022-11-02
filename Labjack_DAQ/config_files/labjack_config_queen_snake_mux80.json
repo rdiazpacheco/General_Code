@@ -1,0 +1,184 @@
+{
+    "deviceType": "T7",
+    "connectionType": "ETHERNET",
+    "identifier": "169.254.10.100",
+    "fs": 200.0,
+    "channels": {
+        "AIN48": {
+            "name": "hall_r1_0",
+            "index": 48,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0.0,
+            "NEGATIVE_CH": 56,
+            "RANGE": 0.1,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        },
+        "AIN49": {
+            "name": "hall_t1_0",
+            "index": 49,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0.0,
+            "NEGATIVE_CH": 57,
+            "RANGE": 0.1,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        },
+        "AIN50": {
+            "name": "hall_r2_0",
+            "index": 50,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0.0,
+            "NEGATIVE_CH": 58,
+            "RANGE": 0.1,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        },
+        "AIN51": {
+            "name": "hall_t2_0",
+            "index": 51,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0.0,
+            "NEGATIVE_CH": 59,
+            "RANGE": 0.1,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        },
+        "AIN52": {
+            "name": "hall_r3_0",
+            "index": 52,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0.0,
+            "NEGATIVE_CH": 60,
+            "RANGE": 0.1,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        },
+        "AIN53": {
+            "name": "hall_t3_0",
+            "index": 53,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0.0,
+            "NEGATIVE_CH": 61,
+            "RANGE": 0.1,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        },
+        "AIN54": {
+            "name": "hall_r4_0",
+            "index": 54,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0.0,
+            "NEGATIVE_CH": 62,
+            "RANGE": 0.1,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        },
+        "AIN55": {
+            "name": "hall_t4_0",
+            "index": 55,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0.0,
+            "NEGATIVE_CH": 63,
+            "RANGE": 0.1,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        },
+        "AIN96": {
+            "name": "hall_r1_1",
+            "index": 96,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0.0,
+            "NEGATIVE_CH": 104,
+            "RANGE": 0.1,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        },
+        "AIN97": {
+            "name": "hall_t1_1",
+            "index": 97,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0.0,
+            "NEGATIVE_CH": 105,
+            "RANGE": 0.1,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        },
+        "AIN98": {
+            "name": "hall_r2_1",
+            "index": 98,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0.0,
+            "NEGATIVE_CH": 106,
+            "RANGE": 0.1,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        },
+        "AIN99": {
+            "name": "hall_t2_1",
+            "index": 99,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0.0,
+            "NEGATIVE_CH": 107,
+            "RANGE": 0.1,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        },
+        "AIN100": {
+            "name": "hall_r3_1",
+            "index": 100,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0.0,
+            "NEGATIVE_CH": 108,
+            "RANGE": 0.1,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        },
+        "AIN101": {
+            "name": "hall_t3_1",
+            "index": 101,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0.0,
+            "NEGATIVE_CH": 109,
+            "RANGE": 0.1,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        },
+        "AIN102": {
+            "name": "hall_r4_1",
+            "index": 102,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0.0,
+            "NEGATIVE_CH": 110,
+            "RANGE": 0.1,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        },
+        "AIN103": {
+            "name": "hall_t4_1",
+            "index": 103,
+            "units": "volts",
+            "slope": 1.0,
+            "offset": 0.0,
+            "NEGATIVE_CH": 111,
+            "RANGE": 0.1,
+            "RESOLUTION_INDEX": 0,
+            "SETTLING_US": 0
+        }
+    }
+}
