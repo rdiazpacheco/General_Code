@@ -221,10 +221,10 @@ def assign_names(n1, n2, n3, n4):
 # Select a folder and then extract the data into one Data Frame
 # I_col_name refers to the name of the Current Column in the CSV file
 #V_cols_name refers to the name of the Voltage taps. Could be ChStat[1].Value or VTapFilter[1].rVal - we should change this on Jabba
-no_ch = 8
+no_ch = 4
 folder_path = filedialog.askdirectory()
 all_files = glob.glob(os.path.join(folder_path, "*.csv"))
-InVs_1 = Extract_Voltages(all_files,8,4,"CmdAmps.Value","ChStat","Value")
+InVs_1 = Extract_Voltages(all_files,4,4,"CmdAmps.Value","ChStat","Value")
 
 #%%
 #butter filter specs
@@ -355,9 +355,9 @@ sample_name = "PIT VIPER Joint QS_A1-QS_A2 "
 #sample_name = "Overall QS_A1-QS_A3 "
 #sample_name = "QS_A2 Cable "
 #sample_name = "QS2_A2 Lead "
-tap_of_interest = 6
-tap_dist = 25
-n_guess = 8
+tap_of_interest = 2
+tap_dist = 5
+n_guess = 15
 
 #butter low pass filter is used here
 T = 5.0         # Sample Period
