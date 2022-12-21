@@ -181,45 +181,73 @@ tot_ch = no_ch
 
 
 #%% Fitting without steps all in the file
+#""" 20221116
+Tap_dist = {
+    1:22.75,
+    2:24.95,
+    3:47.9,
+    4:20,
+    5:33.25,
+    6:33.1,
+    7:31.4,
+    8:29.3,    
+    }
+#"""
 
+""" 20221114
 Tap_dist = {
     1:21,
-    2:20,
-    3:6,
-
-    4:9,
-    5:12,
-    6:21.5,
-    7:20,
+    2:21,
+    3:20,
+    4:29,
+    5:21,
+    6:20,
+    7:21,
     8:21,    
     }
+#"""
 
+#""" 20221116
 Tap_name = {
-    1:"Lead QS_B2 Good",
-    2:"QS_B2 Clamp",
-    3:"QS_B2 Close",
-    4:"QS_B2 Mid",
-    5:"QS_B2 Far",
-    6:"QS_B1-B2 PV Joint",
-    7:"QS_B1",
-    8:"Lead QS_B1",    
+    1:"QS_A1-QS_A2 PVJ 1",
+    2:"QS_A1-QS_A2 PVJ 2",
+    3:"QS_A1_479",
+    4:"QS_A1_200",
+    5:"QS_A1_332",
+    6:"QS_A1_331",
+    7:"QS_A1_314",
+    8:"QS_A1_293", 
     }
+#"""
 
+""" 20221114
+Tap_name = {
+    1:"QS_A2 Lead (Low IC1)",
+    2:"QS_A2 Lead (Low IC2)",
+    3:"QS_A2 core",
+    4:"QS_A1-A2 PVJ+R",
+    5:"QS_A1-A2 PVJ",
+    6:"QS_A1 core",
+    7:"QS_A1 Lead (High IC1)",
+    8:"QS_A1 Lead (High IC2)",    
+    }
+#"""
+all_files.sort()
 F_start = int(all_files[0].partition('\\')[2][-5])
-ch_no = 1
+ch_no = 8
 Inv_taps = 1
 #Mag_f = (Mag_factor_correction[ch_no]/(1e+6))
 Mag_f = 1
 #Starting current
-I_start = 200
+I_start = 250
 #End of resisitve Current Value
 num_files = len(all_files)
 #ch_no = 6
-R_ind = 2200
+R_ind = 2350
 #End of noise Current Value
-N_ind = 300
+N_ind = 500
 
-first_guess = [1500, 1e-6, 10, 100e-9]
+first_guess = [1700, 1e-6, 10, 10e-9]
 
 for j in range(0, len(all_files)):
     File_num = j+F_start
@@ -275,11 +303,11 @@ for j in range(0, len(all_files)):
     
     ax.plot(All_files[str(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0], 
             signal.decimate(Inv_taps*Mag_f*All_files[str(File_num)].iloc[int(10*I_indices_R[0]):int(10*I_indices_R[1]),ch_no],10),
-            label = "Raw", linewidth = 5, linestyle = "-", color = "purple", alpha = 0.5-(j/10))
+            label = "Raw", linewidth = 5, linestyle = "-", color = "black", alpha = 0.5-(j/10))
     #Raw - inductive voltage
     ax.plot(All_files[str(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0], 
             signal.decimate(Inv_taps*Mag_f*(All_files[str(File_num)].iloc[int(10*I_indices_R[0]):int(10*I_indices_R[1]),ch_no]-Avg_at_NoiseRange_per_tap.iloc[ch_no-1]),10),
-            label = "Raw - V(ind)", linewidth = 2, linestyle = "-", color = "tab:green")
+            label = "Raw - V(ind)", linewidth = 2, linestyle = "-", color = "tab:blue")
     
    
     #Fitted Function
@@ -295,31 +323,61 @@ for j in range(0, len(all_files)):
 
 #%% Fitting for joint resistance: Ch 1
 
-
+""" Tap distance 20221122
 Tap_dist = {
     1:21,
-    2:20,
+    2:21,
     3:20,
-    4:32,
-    5:22.5,
+    4:29,
+    5:21,
     6:20,
-    7:20,
+    7:21,
     8:21,    
     }
+#"""
 
-Tap_name = {
-    1:"Lead QS_B2 Good Post Epoxy",
-    2:"QS_B2 Clamp",
-    3:"QS_B2 Close",
-    4:"QS_B2 Mid",
-    5:"QS_B2 Far",
-    6:"QS_B1-B2 PV Joint Post Epoxy",
-    7:"QS_B1",
-    8:"Lead QS_B1 Post Epoxy",    
+#""" 20221114
+Tap_dist = {
+    1:22.75,
+    2:24.95,
+    3:47.9,
+    4:20,
+    5:33.25,
+    6:33.1,
+    7:31.4,
+    8:29.3,    
     }
+#"""
+
+""" Tap names 20221122
+Tap_name = {
+    1:"QS_A2 Lead (Low IC1)",
+    2:"QS_A2 Lead (Low IC2)",
+    3:"QS_A2 core",
+    4:"QS_A1-A2 PVJ+R",
+    5:"QS_A1-A2 PVJ",
+    6:"QS_A1 core",
+    7:"QS_A1 Lead (High IC1)",
+    8:"QS_A1 Lead (High IC2)",    
+    }
+#"""
+
+#""" 20221116
+Tap_name = {
+    1:"QS_A1-QS_A2 PVJ 1",
+    2:"QS_A1-QS_A2 PVJ 2",
+    3:"QS_A1_479",
+    4:"QS_A1_200",
+    5:"QS_A1_332",
+    6:"QS_A1_331",
+    7:"QS_A1_314",
+    8:"QS_A1_293", 
+    }
+#"""
 all_files.sort()
 F_start = int(all_files[0].partition('\\')[2][-5])
-ch_no = 8
+ch_no = 2
+
 Inv_taps = 1
 Mag_f = 1
 #Starting current
@@ -328,7 +386,7 @@ I_start = 300
 num_files = len(all_files)
 
 #ch_no = 6
-R_ind = 1200
+R_ind = 1700
 #End of noise Current Value
 N_ind = 500
 
@@ -382,7 +440,7 @@ for j in range(0, len(all_files)):
     ax.plot(x_data,y_data, linewidth = 2, linestyle = "-", color = "black", alpha = 0.5-(j/10))
     ax.plot(fit_x,fit_y,
             label = Tap_name[ch_no] + ": R = " + str(round(popt[0]*(1e9),3)) + " n\u03A9 " + "(" + str(round((popt[0]*(1e9))/Tap_dist[ch_no],3)) + " n\u03A9 /cm)",
-            linewidth = 5, linestyle = "--", color = "tab:blue")
+            linewidth = 5, linestyle = "--", color = "tab:red")
     
     ax.legend(fontsize = 25)
 
@@ -476,7 +534,7 @@ I_indices_Noise = range_between_two_Ivalues(All_files[str(File_num)],I_start, N_
 I_indices_R = range_between_two_Ivalues(All_files[str(File_num)],I_start, R_ind)
 #Find the average noise/signal between the given ranges
 
-ch_no = 1
+ch_no = 2
 Avg_at_NoiseRange_per_tap = average_in_range(I_indices_Noise,All_files[str(File_num)],0)
 Avg_at_ResistiveRange_per_tap = average_in_range(I_indices_R,All_files[str(File_num)],0)
 # Stepped portion 

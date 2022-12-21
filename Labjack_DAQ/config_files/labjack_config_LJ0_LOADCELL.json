@@ -19,7 +19,7 @@
             "name": "Load_Cell_01",
             "index": 2,
             "units": "kg",
-            "slope": 2,
+            "slope": 1,
             "offset": 0,
             "NEGATIVE_CH": 199,
             "RANGE": 0.0,
