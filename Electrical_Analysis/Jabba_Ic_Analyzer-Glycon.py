@@ -50,53 +50,77 @@ def butter_lowpass_filter(cutoff, fs, order,data):
     y = filtfilt(b, a, data)
     return y
 
-def Extract_voltages_one_file(filename,no_ch,header_no,I_col_name,V_cols_name,rvalORvalue):   
+def Extract_voltages_one_file(filename,no_ch,header_no,I_col_name,V_cols_name,rvalORvalue,load_cell):   
     li = []
     df = pd.read_csv(filename, header=header_no, skiprows = range(7,24))
     fname1 = (all_files[j].partition('\\')[2])
     fname = fname1[:-4]
     try:
         I_val = df.loc[:,I_col_name];
+        
     except: 
         header_no = 4
         df = pd.read_csv(filename, header=header_no, skiprows = range(7,24))
         fname1 = (all_files[j].partition('\\')[2])
         fname = fname1[:-4]
         I_val = df.loc[:,I_col_name];
-
+        
     li.append(I_val)
     li[0].rename("I_"+fname,inplace=True)
     for i in range(1,(1+no_ch)):
         VTap = df.loc[:,str(V_cols_name) + "[" +str(i) + "]." + str(rvalORvalue)];
         li.append(VTap)
-        li[i].rename("V"+str(i),inplace=True)            
+        li[i].rename("V"+str(i),inplace=True)
+    try:
+        load_cell_val = df.loc[:,load_cell];
+        load_cell_val = load_cell_val.replace(r'^\s*$', np.nan, regex=True)
+        li.append(pd.Series(max(load_cell_val.astype(float))))
+        li[i+1].rename("Max Load",inplace=True)
+    except:
+        li.append(pd.Series(0))
+        li[i+1].rename("Max Load",inplace=True)        
     frame = pd.concat(li, axis=1, ignore_index= False)   
+    test_dict = {}
+    test_dict[0] = frame
     return frame
 
 def offset_voltage_perCh(data,IvsV):
-    I_start = np.where(data.iloc[:,0]>0)
+    data = data.replace(r'^\s*$', np.nan, regex=True)
+    I_start = np.where(data.iloc[:,0].astype(float)>0)
     I_start_ind = min(I_start[0])
     Offset_values = []
     for i in range(0,tot_ch):
         Offset_values.append(np.mean(data.iloc[0:IvsV*(I_start_ind-10),(i+1)].astype(float)))
     return Offset_values
 
+
+
 def find_start_end_ramp_onefile(data,Istart):
     max_Iall = []
     I_ind = []
     I_str_stp = np.zeros(2)
-    I_nparray = np.where(data.iloc[:,0]>Istart)
-    I_ind.append(I_nparray[0])
-    I_str_stp[0] = int(min(I_ind[0]))
-    I_max = max(data.iloc[:,0])
-    max_Ip = np.where(data.iloc[:,0] == max(data.iloc[:,0]))
-    max_Iall.append(max_Ip[0])
-    I_str_stp[1] = int(min(max_Iall[0]))
+    try: 
+        I_nparray = np.where(data.iloc[:,0].astype(float)>Istart)
+        I_ind.append(I_nparray[0])
+        I_str_stp[0] = int(min(I_ind[0]))
+        I_max = max(data.iloc[:,0].astype(float))
+        max_Ip = np.where(data.iloc[:,0].astype(float) == max(data.iloc[:,0].astype(float)))
+        max_Iall.append(max_Ip[0])
+        I_str_stp[1] = int(min(max_Iall[0]))
+    except:
+        data = data.replace(r'^\s*$', np.nan, regex=True)
+        I_nparray = np.where(data.iloc[:,0].astype(float)>Istart)
+        I_ind.append(I_nparray[0])
+        I_str_stp[0] = int(min(I_ind[0]))
+        I_max = max(data.iloc[:,0].astype(float))
+        max_Ip = np.where(data.iloc[:,0].astype(float) == max(data.iloc[:,0].astype(float)))
+        max_Iall.append(max_Ip[0])
+        I_str_stp[1] = int(min(max_Iall[0]))
     return I_str_stp, I_max
 
 def I_idx(data,I_value):
     I_ind = []
-    I_nparray = np.where(data.iloc[:,0]>I_value)
+    I_nparray = np.where(data.iloc[:,0].astype(float)>I_value)
     I_ind.append(I_nparray[0])
     I_indx = int(min(I_ind[0]))
     return I_indx
@@ -105,17 +129,32 @@ def range_between_two_Ivalues(data,Istart,Iend):
     I_nA = []
     I_nB = []   
     I_ABs = np.zeros(2)
-    I_nAp = np.where(data.iloc[:,0] > Istart)
-    I_nA.append(I_nAp[0])   
-    I_ABs[0] = int(min(I_nA[0]))
-    #if the current upper bound is bigger than the max current, then we set the noise range 500 steps ahead
-    if Iend >= max(data.iloc[:,0]):  
-        I_nB.append(min(I_nA[0]) + 500)
-        I_ABs[1] = int(min(I_nA[0]) + 500)
-    else:
-        I_nBp = np.where(data.iloc[:,0] > Iend)
-        I_nB.append(I_nBp[0])    
-        I_ABs[1] = int(min(I_nB[0]))
+    try:
+        I_nAp = np.where(data.iloc[:,0].astype(float) > Istart)
+        I_nA.append(I_nAp[0])   
+        I_ABs[0] = int(min(I_nA[0]))
+        #if the current upper bound is bigger than the max current, then we set the noise range 500 steps ahead
+        if Iend >= max(data.iloc[:,0].astype(float)):  
+            I_nB.append(min(I_nA[0]) + 500)
+            I_ABs[1] = int(min(I_nA[0]) + 500)
+        else:
+            I_nBp = np.where(data.iloc[:,0].astype(float) > Iend)
+            I_nB.append(I_nBp[0])    
+            I_ABs[1] = int(min(I_nB[0]))
+    except:
+        data = data.replace(r'^\s*$', np.nan, regex=True)
+        I_nAp = np.where(data.iloc[:,0].astype(float) > Istart)
+        I_nA.append(I_nAp[0])   
+        I_ABs[0] = int(min(I_nA[0]))
+        #if the current upper bound is bigger than the max current, then we set the noise range 500 steps ahead
+        if Iend >= max(data.iloc[:,0].astype(float)):  
+            I_nB.append(min(I_nA[0]) + 500)
+            I_ABs[1] = int(min(I_nA[0]) + 500)
+        else:
+            I_nBp = np.where(data.iloc[:,0].astype(float) > Iend)
+            I_nB.append(I_nBp[0])    
+            I_ABs[1] = int(min(I_nB[0]))
+    
     return I_ABs
 
 def average_in_range(indices,data,filt_before,IvsV):  
@@ -240,6 +279,8 @@ Tap_name = {
     }
 #"""
 
+
+
 #%% Data Import
 folder_path = filedialog.askdirectory()
 folder_name = folder_path.partition('IcSearch/')[2]
@@ -251,15 +292,18 @@ header_no = 6
 
 for j in range(0,num_files):  
     one_filename = all_files[j]
-    All_files[str(all_files[j].partition('\\')[2][-5:-4])] = Extract_voltages_one_file(one_filename,no_ch,header_no,"CmdAmps.Value","VTapFilter","rVal")
+    #All_files[j] = Extract_voltages_one_file(one_filename,no_ch,header_no,"FdbkAmps.Value","VTapFilter","rVal","Load Cell [MPa]")
+    All_files[j] = Extract_voltages_one_file(one_filename,no_ch,header_no,"CmdAmps.Value","VTapFilter","rVal","Load Cell [MPa]")
+    #All_files[str(all_files[j].partition('\\')[2][-5:-4])] = Extract_voltages_one_file(one_filename,no_ch,header_no,"CmdAmps.Value","VTapFilter","rVal","Load Cell [MPa]")
 tot_ch = no_ch
 
-
+#FdbkAmps.Value
 
 #%%
 all_files.sort()
-F_start = int(all_files[0].partition('\\')[2][-5])
-ch_no = 3
+#F_start = int(all_files[0].partition('\\')[2][-5])
+F_start = 0
+ch_no = 2
 Inv_taps = 1
 #Mag_f = (Mag_factor_correction[ch_no]/(1e+6))
 Mag_f = 1e-7
@@ -268,7 +312,7 @@ I_start = 150
 #End of resisitve Current Value
 num_files = len(all_files)
 #ch_no = 6
-R_ind = 4599
+R_ind = 4499
 #End of noise Current Value
 N_ind = 4199
 IvsV = 1
@@ -277,15 +321,15 @@ first_guess = [3500, 1e-6, 11, 50e-9]
 ax.cla()
 for j in range(0, len(all_files)):
     File_num = j+F_start
-    Current_indices, Imax = find_start_end_ramp_onefile(All_files[str(File_num)],I_start)
-    I_indices_Noise = range_between_two_Ivalues(All_files[str(File_num)],I_start, N_ind)
-    I_indices_R = range_between_two_Ivalues(All_files[str(File_num)],I_start, R_ind)
-    Avg_at_NoiseRange_per_tap = Mag_f*Tap_dist[ch_no]*average_in_range(I_indices_Noise,All_files[str(File_num)],0,1)
-    Avg_at_ResistiveRange_per_tap = Mag_f*Tap_dist[ch_no]*average_in_range(I_indices_R,All_files[str(File_num)],0,1)
-    Avg_inductive_V = Avg_at_NoiseRange_per_tap.iloc[ch_no-1]-(Inv_taps*Mag_f*offset_voltage_perCh(All_files[str(File_num)],1)[ch_no-1])
+    Current_indices, Imax = find_start_end_ramp_onefile(All_files[int(File_num)],I_start)
+    I_indices_Noise = range_between_two_Ivalues(All_files[int(File_num)],I_start, N_ind)
+    I_indices_R = range_between_two_Ivalues(All_files[int(File_num)],I_start, R_ind)
+    Avg_at_NoiseRange_per_tap = Mag_f*Tap_dist[ch_no]*average_in_range(I_indices_Noise,All_files[int(File_num)],0,1)
+    Avg_at_ResistiveRange_per_tap = Mag_f*Tap_dist[ch_no]*average_in_range(I_indices_R,All_files[int(File_num)],0,1)
+    Avg_inductive_V = Avg_at_NoiseRange_per_tap.iloc[ch_no-1]-(Inv_taps*Mag_f*offset_voltage_perCh(All_files[int(File_num)],1)[ch_no-1])
     
-    x_data = All_files[str(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0]
-    y_data = signal.decimate(Inv_taps*Mag_f*Tap_dist[ch_no]*(All_files[str(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no].astype(float)-Avg_at_NoiseRange_per_tap.iloc[ch_no-1]),IvsV)
+    x_data = All_files[int(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0].astype(float)
+    y_data = signal.decimate(Inv_taps*Mag_f*Tap_dist[ch_no]*(All_files[int(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no].astype(float)-Avg_at_NoiseRange_per_tap.iloc[ch_no-1]),IvsV)
     
     def func_w_R(x, Ic, V_floor, n,R, Vc = (Tap_dist[ch_no]*(1e-6))):
         return Vc*(x/Ic)**n + V_floor + x*R
@@ -293,8 +337,8 @@ for j in range(0, len(all_files)):
     #fit function
     popt, pcov = curve_fit(func_w_R,x_data,y_data,p0=first_guess)
     
-    fit_x = np.linspace(I_start,R_ind,len(All_files[str(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no]))
-    fit_x2 = np.linspace(0,Imax,len(All_files[str(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no]))
+    fit_x = np.linspace(I_start,R_ind,len(All_files[int(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no]))
+    fit_x2 = np.linspace(0,Imax,len(All_files[int(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no]))
     fit_y = func_w_R(fit_x, *popt)
 
     first_guess = [2400, 1e-6, 10, 100e-9]
@@ -311,7 +355,7 @@ for j in range(0, len(all_files)):
     ax.tick_params(axis='x', labelsize=30)
     ax.tick_params(axis='y', labelsize=30)
     ax.set_axisbelow(True)
-    #"""
+    """
     ax.xaxis.set_major_locator(MultipleLocator(1000))
     ax.yaxis.set_major_locator(MultipleLocator(0.00005))
     ax.xaxis.set_minor_locator(AutoMinorLocator(5))
@@ -321,28 +365,31 @@ for j in range(0, len(all_files)):
     #"""
     ax.set_xlabel("Current [A]", fontsize=30)
     ax.set_ylabel("Voltage [V]", fontsize=30)
-    #Raw 
-    #ax.plot(All_files[str(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0], 
-    #        signal.decimate(Inv_taps*Mag_f*Tap_dist[ch_no]*All_files[str(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no],IvsV),
-    #        label = "Raw", linewidth = 0.1, linestyle = "-", color = "tab:blue", alpha = 0.75-(j/10))
+
     #Cleaned - inductive voltage
-    ax.plot(All_files[str(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0], 
+    ax.plot(All_files[int(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0].astype(float), 
             signal.decimate(Inv_taps*Mag_f*Tap_dist[ch_no]*
-                            (All_files[str(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no].astype(float)-Avg_at_NoiseRange_per_tap.iloc[ch_no-1]),IvsV),
-            label = "Raw - V(ind)", linewidth = 0.25, alpha = 0.85-(j/10), linestyle = "-", color = "black")
-    
+                            (All_files[int(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no].astype(float)-Avg_at_NoiseRange_per_tap.iloc[ch_no-1]),IvsV),
+            label = "Raw - V(ind)", linewidth = 0.25, alpha = 0.85-(j/50), linestyle = "-", color = "black")
    
     #Fitted Function
-    ax.plot(fit_x, fit_y,label = "Fit, n=" + str(round(popt[2],1)) + " Ic=" + str(round(popt[0],1)) + " [A], R=" + str(round(popt[3]*(1e9),1)) + " n\u03A9 ", linewidth = 7, linestyle = "-.", color = "tab:red", alpha = 1-(j/10))
+    ax.plot(fit_x, fit_y,
+            label = "Fit, n=" + str(round(popt[2],1)) + " Ic=" + str(round(popt[0],1)) + " [A], R=" + str(round(popt[3]*(1e9),1)) + " n\u03A9 ", 
+            linewidth = 7, linestyle = "-.", color = "tab:red", alpha = 1-(j/50))
 
     
     #Display crical voltage and current
-    ax.plot(All_files[str(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0],
-            np.full_like(All_files[str(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0],Tap_dist[ch_no]*1e-6),
+    ax.plot(All_files[int(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0].astype(float),
+            np.full_like(All_files[int(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0],Tap_dist[ch_no]*1e-6),
             linewidth = 3, linestyle = ":", color = "red", alpha = 1, 
             label = "Vc = " + str(round(Tap_dist[ch_no],1)) + "uV, Degradaton = " + str(round((100*(1-(popt[0]/Ic_RG))),2)) + "%")
-    ax.axvline(x = round(popt[0],1), color = 'red', linewidth = 2,linestyle='-.')
+    #ax.axvline(x = round(popt[0],1), color = 'red', linewidth = 2,linestyle='-.')
     ax.legend(fontsize = 15)
+    
+
+
+    
+#%%
     
 #%% Fitting for joint resistance: Ch 1
 all_files.sort()
@@ -364,21 +411,21 @@ first_guess = [40e-9, 1e-5]
 ax.cla()
 for j in range(0, len(all_files)):
     File_num = j+F_start
-    Current_indices, Imax = find_start_end_ramp_onefile(All_files[str(File_num)],I_start)
-    I_indices_Noise = range_between_two_Ivalues(All_files[str(File_num)],I_start, N_ind)
-    I_indices_R = range_between_two_Ivalues(All_files[str(File_num)],I_start, R_ind)
-    Avg_at_NoiseRange_per_tap = Mag_f*Tap_dist[ch_no]*average_in_range(I_indices_Noise,All_files[str(File_num)],0,IvsV)
-    Avg_at_ResistiveRange_per_tap = Mag_f*Tap_dist[ch_no]*average_in_range(I_indices_R,All_files[str(File_num)],0,IvsV)
-    Avg_inductive_V = Avg_at_NoiseRange_per_tap.iloc[ch_no-1]-(Inv_taps*Mag_f*offset_voltage_perCh(All_files[str(File_num)],IvsV)[ch_no-1])
+    Current_indices, Imax = find_start_end_ramp_onefile(All_files[int(File_num)],I_start)
+    I_indices_Noise = range_between_two_Ivalues(All_files[int(File_num)],I_start, N_ind)
+    I_indices_R = range_between_two_Ivalues(All_files[int(File_num)],I_start, R_ind)
+    Avg_at_NoiseRange_per_tap = Mag_f*Tap_dist[ch_no]*average_in_range(I_indices_Noise,All_files[int(File_num)],0,1)
+    Avg_at_ResistiveRange_per_tap = Mag_f*Tap_dist[ch_no]*average_in_range(I_indices_R,All_files[int(File_num)],0,1)
+    Avg_inductive_V = Avg_at_NoiseRange_per_tap.iloc[ch_no-1]-(Inv_taps*Mag_f*offset_voltage_perCh(All_files[int(File_num)],1)[ch_no-1])
     
-    x_data = All_files[str(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0]
-    y_data = signal.decimate(Inv_taps*Mag_f*Tap_dist[ch_no]*
-                             (All_files[str(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no]),IvsV)
-   
+    x_data = All_files[int(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0].astype(float)
+    y_data = signal.decimate(Inv_taps*Mag_f*Tap_dist[ch_no]
+                             *(All_files[int(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no].astype(float)-Avg_at_NoiseRange_per_tap.iloc[ch_no-1]),IvsV)
+    
     popt, pcov = curve_fit(func_only_R,x_data,y_data,p0=first_guess)
-    
-    fit_x = np.linspace(I_start,R_ind,len(All_files[str(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no]))
-    fit_x2 = np.linspace(0,Imax,len(All_files[str(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no]))
+ 
+    fit_x = np.linspace(I_start,R_ind,len(All_files[int(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no]))
+    fit_x2 = np.linspace(0,Imax,len(All_files[int(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no]))
     fit_y = func_only_R(fit_x, *popt)
     
     fig = plt.figure(1)
@@ -414,6 +461,72 @@ for j in range(0, len(all_files)):
     ax.legend(fontsize = 40)
 
 
+#%% Graphing Ic against pressure
 
+
+all_files.sort()
+#F_start = int(all_files[0].partition('\\')[2][-5])
+F_start = 0
+ch_no = 2
+Inv_taps = 1
+#Mag_f = (Mag_factor_correction[ch_no]/(1e+6))
+Mag_f = 1e-7
+#Starting current
+I_start = 150
+#End of resisitve Current Value
+num_files = len(all_files)
+#ch_no = 6
+R_ind = 4499
+#End of noise Current Value
+N_ind = 2500
+IvsV = 1
+
+first_guess = [3500, 1e-6, 11, 50e-9]
+ax.cla()
+for j in range(0, len(all_files)):
+    File_num = j+F_start
+    Current_indices, Imax = find_start_end_ramp_onefile(All_files[int(File_num)],I_start)
+    I_indices_Noise = range_between_two_Ivalues(All_files[int(File_num)],I_start, N_ind)
+    I_indices_R = range_between_two_Ivalues(All_files[int(File_num)],I_start, R_ind)
+    Avg_at_NoiseRange_per_tap = Mag_f*Tap_dist[ch_no]*average_in_range(I_indices_Noise,All_files[int(File_num)],0,1)
+    Avg_at_ResistiveRange_per_tap = Mag_f*Tap_dist[ch_no]*average_in_range(I_indices_R,All_files[int(File_num)],0,1)
+    Avg_inductive_V = Avg_at_NoiseRange_per_tap.iloc[ch_no-1]-(Inv_taps*Mag_f*offset_voltage_perCh(All_files[int(File_num)],1)[ch_no-1])
+    
+    x_data = All_files[int(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0].astype(float)
+    y_data = signal.decimate(Inv_taps*Mag_f*Tap_dist[ch_no]*(All_files[int(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no].astype(float)-Avg_at_NoiseRange_per_tap.iloc[ch_no-1]),IvsV)
+    
+    def func_w_R(x, Ic, V_floor, n,R, Vc = (Tap_dist[ch_no]*(1e-6))):
+        return Vc*(x/Ic)**n + V_floor + x*R
+    
+    #fit function
+    popt, pcov = curve_fit(func_w_R,x_data,y_data,p0=first_guess)
+    
+    #Display     
+    fig = plt.figure(1)
+    ax = fig.gca()
+    all_files.sort()
+    fname1 = (all_files[File_num-F_start].partition('\\')[2])  #----------- name here
+    
+    fname = fname1[:-4]
+    plt.rcParams["figure.figsize"] = [25, 15]
+    fig.suptitle(Tap_name[ch_no] + ": Ch. " + str(ch_no) + " - " + fname,fontsize=25)
+    ax.tick_params(axis='x', labelsize=30)
+    ax.tick_params(axis='y', labelsize=30)
+    ax.set_axisbelow(True)
+    """
+    ax.xaxis.set_major_locator(MultipleLocator(1000))
+    ax.yaxis.set_major_locator(MultipleLocator(0.00005))
+    ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+    ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+    ax.grid(which='major', color='#CCCCCC', linestyle='--')
+    ax.grid(which='minor', color='#CCCCCC', linestyle=':')
+    #"""
+    ax.set_xlabel("Pressure [MPa]", fontsize=30)
+    ax.set_ylabel("Critical Current [A]", fontsize=30)
+    
+    #Compression vs IC)
+    ax.scatter(All_files[int(File_num)].iloc[0,5],popt[0], label = fname1, s=500)
+
+    ax.legend(fontsize = 10)
 
 
