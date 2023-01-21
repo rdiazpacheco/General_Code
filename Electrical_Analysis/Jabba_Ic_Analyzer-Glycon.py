@@ -204,7 +204,7 @@ def assign_names(n1, n2, n3, n4):
 #%% Glycon I
 Tap_dist = {
     1:40,
-    2:70,
+    2:59,
     3:22,
     4:40    
     }
@@ -221,7 +221,7 @@ Tap_name = {
 #"""
 
 Ic_RG =4130
-
+IvsV = 10
 #%% Glycon II
 Tap_dist = {
     1:44,
@@ -239,27 +239,77 @@ Tap_name = {
     3:"Glycon II: Whole Core",
     4:"Glycon II: Lead B"
     }
-#"""
+
+Cycle_count = {
+    1:0,
+    2:0,
+    3:0,
+    4:0,
+    5:0,
+    6:50,
+    7:100,
+    8:200
+    }
+
 Ic_RG =4130
+IvsV = 1
+Mag_f = 1e-7
 #%% Glycon III
 Tap_dist = {
-    1:22.75,
-    2:24.95,
-    3:47.9,
-    4:20    
+    1:45,
+    2:59,
+    3:22,
+    4:45    
     }
 #"""
 
 
 #""" 20221116
 Tap_name = {
-    1:"QS_A1-QS_A2 PVJ 1",
-    2:"QS_A1-QS_A2 PVJ 2",
-    3:"QS_A1_479",
-    4:"QS_A1_200"
+    1:"Glycon III: Lead A",
+    2:"Glycon III: Whole Core ",
+    3:"Glycon III: Compressed Core",
+    4:"Glycon III: Lead B"
     }
 #"""
 
+Cycle_count = {
+    1:0,
+    2:0,
+    3:0,
+    4:1,
+    5:50,
+    6:50,
+    7:100,
+    8:100,
+    9:200,
+    10:200,
+    11:200
+    }
+
+Cycle_Pressure = { 
+    1:"0",
+    2:"0",
+    3:"0",
+    4:"250",
+    5:"250",
+    6:"275",
+    7:"275",
+    8:"300",
+    9:"300",
+    10:"325",
+    11:"325",
+    12:"350",
+    13:"350",
+    14:"375",
+    15:"375",
+    16:"400",
+    17:"400"    
+    }
+
+Ic_RG =4300
+IvsV = 1
+Mag_f = 1e-7
 #%% Glycon IV
 Tap_dist = {
     1:22.75,
@@ -285,6 +335,7 @@ Tap_name = {
 folder_path = filedialog.askdirectory()
 folder_name = folder_path.partition('IcSearch/')[2]
 all_files = glob.glob(os.path.join(folder_path, "*.csv"))
+all_files.sort()
 num_files = len(all_files)
 All_files = {}
 no_ch = 4
@@ -306,19 +357,20 @@ F_start = 0
 ch_no = 2
 Inv_taps = 1
 #Mag_f = (Mag_factor_correction[ch_no]/(1e+6))
-Mag_f = 1e-7
 #Starting current
-I_start = 150
-#End of resisitve Current Value
+I_start = 200
 num_files = len(all_files)
 #ch_no = 6
-R_ind = 4499
+R_ind = 4600
 #End of noise Current Value
-N_ind = 4199
-IvsV = 1
+N_ind = 2000
+Ic_P = np.zeros([len(all_files),2])
 
 first_guess = [3500, 1e-6, 11, 50e-9]
-ax.cla()
+try: 
+    ax.cla()
+except:
+    j = 0
 for j in range(0, len(all_files)):
     File_num = j+F_start
     Current_indices, Imax = find_start_end_ramp_onefile(All_files[int(File_num)],I_start)
@@ -351,11 +403,11 @@ for j in range(0, len(all_files)):
     
     fname = fname1[:-4]
     plt.rcParams["figure.figsize"] = [25, 15]
-    fig.suptitle(Tap_name[ch_no] + ": Ch. " + str(ch_no) + " - " + fname,fontsize=25)
+    fig.suptitle(Tap_name[ch_no] + ": Ch. " + str(ch_no) + " - " + fname,fontsize=40)
     ax.tick_params(axis='x', labelsize=30)
     ax.tick_params(axis='y', labelsize=30)
     ax.set_axisbelow(True)
-    """
+    #"""
     ax.xaxis.set_major_locator(MultipleLocator(1000))
     ax.yaxis.set_major_locator(MultipleLocator(0.00005))
     ax.xaxis.set_minor_locator(AutoMinorLocator(5))
@@ -370,7 +422,7 @@ for j in range(0, len(all_files)):
     ax.plot(All_files[int(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0].astype(float), 
             signal.decimate(Inv_taps*Mag_f*Tap_dist[ch_no]*
                             (All_files[int(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no].astype(float)-Avg_at_NoiseRange_per_tap.iloc[ch_no-1]),IvsV),
-            label = "Raw - V(ind)", linewidth = 0.25, alpha = 0.85-(j/50), linestyle = "-", color = "black")
+             linewidth = 0.25, alpha = 0.85-(j/50), linestyle = "-", color = "black") #label = "Raw - V(ind)",
    
     #Fitted Function
     ax.plot(fit_x, fit_y,
@@ -379,24 +431,30 @@ for j in range(0, len(all_files)):
 
     
     #Display crical voltage and current
-    ax.plot(All_files[int(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0].astype(float),
-            np.full_like(All_files[int(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0],Tap_dist[ch_no]*1e-6),
-            linewidth = 3, linestyle = ":", color = "red", alpha = 1, 
-            label = "Vc = " + str(round(Tap_dist[ch_no],1)) + "uV, Degradaton = " + str(round((100*(1-(popt[0]/Ic_RG))),2)) + "%")
-    #ax.axvline(x = round(popt[0],1), color = 'red', linewidth = 2,linestyle='-.')
-    ax.legend(fontsize = 15)
+    #ax.plot(All_files[int(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0].astype(float),
+    #        np.full_like(All_files[int(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0],Tap_dist[ch_no]*1e-6),
+    #        linewidth = 3, linestyle = ":", color = "red", alpha = 1, 
+    #        label = "Vc = " + str(round(Tap_dist[ch_no],1)) + "uV, Degradaton = " + str(round((100*(1-(popt[0]/Ic_RG))),2)) + "%")
+    ax.axvline(x = round(popt[0],1), color = 'red', linewidth = 2,linestyle='-.')
+    ax.legend(fontsize = 25)#, ncols = 4)
+    Ic_P[j,0] = popt[0]
+    Ic_P[j,1] = All_files[int(File_num)].iloc[0,5]
+    
+ax.plot(All_files[int(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0].astype(float),
+        np.full_like(All_files[int(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0],Tap_dist[ch_no]*1e-6),
+        linewidth = 3, linestyle = ":", color = "red", alpha = 1, 
+        label = "Vc = " + str(round(Tap_dist[ch_no],1)) + ", IC$_{avg}$= " + str(round(np.mean(Ic_P[:,0]),1)) + " [A]," +  "uV, Degradaton = " + str(round((100*(1-(np.mean(Ic_P[:,0])/Ic_RG))),2)) + "%")
+    
+ax.legend(fontsize = 30)#, ncols = 4)
+
     
 
-
-    
-#%%
-    
 #%% Fitting for joint resistance: Ch 1
 all_files.sort()
-F_start = int(all_files[0].partition('\\')[2][-5])
-ch_no = 4
+#F_start = int(all_files[0].partition('\\')[2][-5])
+F_start = 0
+ch_no = 1
 Inv_taps = 1
-Mag_f = 1e-7
 #Starting current
 I_start = 300
 #End of resisitve Current Value
@@ -408,9 +466,12 @@ R_ind = 2500
 N_ind = 500
 
 first_guess = [40e-9, 1e-5]
-ax.cla()
+try: 
+    ax.cla()
+except:
+    j = 0
 for j in range(0, len(all_files)):
-    File_num = j+F_start
+    File_num = F_start + j
     Current_indices, Imax = find_start_end_ramp_onefile(All_files[int(File_num)],I_start)
     I_indices_Noise = range_between_two_Ivalues(All_files[int(File_num)],I_start, N_ind)
     I_indices_R = range_between_two_Ivalues(All_files[int(File_num)],I_start, R_ind)
@@ -436,7 +497,7 @@ for j in range(0, len(all_files)):
     fname = fname1[:-4]
     fname = fname1[:-4]
     plt.rcParams["figure.figsize"] = [25, 15]
-    fig.suptitle(Tap_name[ch_no] + ": Ch. " + str(ch_no) + " - " + fname,fontsize=25)
+    fig.suptitle(Tap_name[ch_no] + ": Ch. " + str(ch_no) + " - " + fname,fontsize=40)
        
     #"""
     ax.tick_params(axis='x', labelsize=30)
@@ -453,36 +514,32 @@ for j in range(0, len(all_files)):
     ax.set_ylabel("Voltage [V]", fontsize=30)
     #"""
     #Plots 
-    ax.plot(x_data,y_data, linewidth = 0.25, linestyle = "-", color = "black", alpha = 0.95-(j/10))
+    ax.plot(x_data,y_data, linewidth = 0.25, linestyle = "-", color = "black", alpha = 0.95-(j/100))
     ax.plot(fit_x,fit_y,
             label = Tap_name[ch_no] + ": R = " + str(round(popt[0]*(1e9),3)) + " n\u03A9 " + "(" + str(round((popt[0]*(1e9))/Tap_dist[ch_no],3)) + " n\u03A9 /cm)",
             linewidth = 5, linestyle = "--", color = "tab:red")
     
-    ax.legend(fontsize = 40)
+    ax.legend(fontsize = 30)
 
 
 #%% Graphing Ic against pressure
-
-
 all_files.sort()
-#F_start = int(all_files[0].partition('\\')[2][-5])
 F_start = 0
-ch_no = 2
+ch_no = 3
 Inv_taps = 1
-#Mag_f = (Mag_factor_correction[ch_no]/(1e+6))
 Mag_f = 1e-7
-#Starting current
 I_start = 150
-#End of resisitve Current Value
 num_files = len(all_files)
-#ch_no = 6
 R_ind = 4499
-#End of noise Current Value
 N_ind = 2500
 IvsV = 1
+Ic_P = np.zeros([len(all_files),2])
 
 first_guess = [3500, 1e-6, 11, 50e-9]
-ax.cla()
+try: 
+    ax.cla()
+except: 
+    j = 0
 for j in range(0, len(all_files)):
     File_num = j+F_start
     Current_indices, Imax = find_start_end_ramp_onefile(All_files[int(File_num)],I_start)
@@ -509,13 +566,15 @@ for j in range(0, len(all_files)):
     
     fname = fname1[:-4]
     plt.rcParams["figure.figsize"] = [25, 15]
-    fig.suptitle(Tap_name[ch_no] + ": Ch. " + str(ch_no) + " - " + fname,fontsize=25)
+    #fig.suptitle(Tap_name[ch_no] + ": Ch. " + str(ch_no) + " - " + fname,fontsize=25)
+    fig.suptitle(Tap_name[ch_no] + "- Critical Current vs Pressure (0331-0408)" , fontsize = 40)
     ax.tick_params(axis='x', labelsize=30)
     ax.tick_params(axis='y', labelsize=30)
     ax.set_axisbelow(True)
-    """
-    ax.xaxis.set_major_locator(MultipleLocator(1000))
-    ax.yaxis.set_major_locator(MultipleLocator(0.00005))
+    #ax.set_ylim([3900,4150])
+    #"""
+    ax.xaxis.set_major_locator(MultipleLocator(50))
+    ax.yaxis.set_major_locator(MultipleLocator(25))
     ax.xaxis.set_minor_locator(AutoMinorLocator(5))
     ax.yaxis.set_minor_locator(AutoMinorLocator(5))
     ax.grid(which='major', color='#CCCCCC', linestyle='--')
@@ -525,8 +584,105 @@ for j in range(0, len(all_files)):
     ax.set_ylabel("Critical Current [A]", fontsize=30)
     
     #Compression vs IC)
-    ax.scatter(All_files[int(File_num)].iloc[0,5],popt[0], label = fname1, s=500)
+    ax.scatter(All_files[int(File_num)].iloc[0,5],popt[0], s=500, color = "black", marker = "v") #label = fname1
 
-    ax.legend(fontsize = 10)
+    
+    #Save Ic
+    Ic_P[j,0] = popt[0]
+    Ic_P[j,1] = All_files[int(File_num)].iloc[0,5]
+#ax.scatter(All_files[int(File_num)].iloc[0,5],popt[0], s=500, color = "black", marker = "v", label = Tap_name[ch_no])
+Err_std = np.std(Ic_P[:,0], ddof=1) / np.sqrt(np.size(Ic_P[:,0]))
 
+for i in range(0,len(all_files)):
+    ax.errorbar(Ic_P[i,1],Ic_P[i,0],Err_std, color = 'black', capsize = 10)
 
+Ic_Pnot0 = np.where(Ic_P[:,1]>10)
+Ic_P0 = np.where(Ic_P[:,1]<10)  
+Avg_comp = np.mean(Ic_P[Ic_Pnot0[0],0])
+Avg_free = np.mean(Ic_P[Ic_P0[0],0])
+
+ax.axhline(y = Avg_free, color = 'tab:red', linestyle = '--', label = "Average Free Ic = " +str(round(Avg_free,2)) + " A -  " + Tap_name[ch_no], lw = 5)
+ax.axhline(y = Avg_comp, color = 'tab:blue', linestyle = '--', label = "Average Compressed Ic = " +str(round(Avg_comp,2)) + " A - " + Tap_name[ch_no], lw = 5)
+        
+
+#ax.scatter(All_files[int(File_num)].iloc[0,5],popt[0], label = "Ch. no: " + str(ch_no) + " Whole Core", s=500, color = "tab:red")
+ax.legend(fontsize = 30)
+#%% Graphing Ic against pressure CYCLES
+
+all_files.sort()
+F_start = 0
+ch_no = 3
+Inv_taps = 1
+I_start = 150
+num_files = len(all_files)
+R_ind = 4499
+N_ind = 2500
+Ic_P = np.zeros([len(all_files),2])
+
+first_guess = [3500, 1e-6, 11, 50e-9]
+try: 
+    ax.cla()
+except: 
+    j = 0
+for j in range(0, len(all_files)):
+    File_num = j+F_start
+    Current_indices, Imax = find_start_end_ramp_onefile(All_files[int(File_num)],I_start)
+    I_indices_Noise = range_between_two_Ivalues(All_files[int(File_num)],I_start, N_ind)
+    I_indices_R = range_between_two_Ivalues(All_files[int(File_num)],I_start, R_ind)
+    Avg_at_NoiseRange_per_tap = Mag_f*Tap_dist[ch_no]*average_in_range(I_indices_Noise,All_files[int(File_num)],0,1)
+    Avg_at_ResistiveRange_per_tap = Mag_f*Tap_dist[ch_no]*average_in_range(I_indices_R,All_files[int(File_num)],0,1)
+    Avg_inductive_V = Avg_at_NoiseRange_per_tap.iloc[ch_no-1]-(Inv_taps*Mag_f*offset_voltage_perCh(All_files[int(File_num)],1)[ch_no-1])
+    
+    x_data = All_files[int(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0].astype(float)
+    y_data = signal.decimate(Inv_taps*Mag_f*Tap_dist[ch_no]*(All_files[int(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no].astype(float)-Avg_at_NoiseRange_per_tap.iloc[ch_no-1]),IvsV)
+    
+    def func_w_R(x, Ic, V_floor, n,R, Vc = (Tap_dist[ch_no]*(1e-6))):
+        return Vc*(x/Ic)**n + V_floor + x*R
+    
+    #fit function
+    popt, pcov = curve_fit(func_w_R,x_data,y_data,p0=first_guess)
+    
+    #Display     
+    fig = plt.figure(1)
+    ax = fig.gca()
+    all_files.sort()
+    fname1 = (all_files[File_num-F_start].partition('\\')[2])  #----------- name here
+    
+    fname = fname1[:-4]
+    plt.rcParams["figure.figsize"] = [25, 15]
+    #fig.suptitle(Tap_name[ch_no] + ": Ch. " + str(ch_no) + " - " + fname,fontsize=25)
+    fig.suptitle(Tap_name[ch_no] + " - Critical Current vs Total Pressure Cycles (" + fname[0:8] +")" , fontsize = 40)
+    ax.tick_params(axis='x', labelsize=30)
+    ax.tick_params(axis='y', labelsize=30)
+    ax.set_axisbelow(True)
+    ax.set_ylim([4210,4270])
+    #"""
+    ax.xaxis.set_major_locator(MultipleLocator(20))
+    ax.yaxis.set_major_locator(MultipleLocator(10))
+    ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+    ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+    ax.grid(which='major', color='#CCCCCC', linestyle='--')
+    ax.grid(which='minor', color='#CCCCCC', linestyle=':')
+    #"""
+    ax.set_xlabel("Total number of Cycles", fontsize=30)
+    ax.set_ylabel("Critical Current [A]", fontsize=30)
+    
+    #Cycle count vs Ic
+    ax.scatter(Cycle_count[j+1],popt[0], s=500, marker = "v", color = "black") #label = fname1
+    
+    #Save Ic & Pressure
+    Ic_P[j,0] = popt[0]
+    Ic_P[j,1] = j
+    
+Err_std = np.std(Ic_P[:,0], ddof=1) / np.sqrt(np.size(Ic_P[:,0]))
+
+for i in range(0,len(all_files)):
+    ax.errorbar(Cycle_count[i+1],Ic_P[i,0],Err_std, color = 'black', capsize = 10)
+    #ax.annotate(Cycle_Pressure[i+1]+"MPa",([Cycle_count[i+1],Ic_P[i,0]]),xytext=(Cycle_count[i+1],Ic_P[i,0]+5),fontsize = 25, 
+    #            arrowprops=dict(facecolor='black', arrowstyle="wedge, tail_width = 0.25", alpha=0.1))
+    
+ax.axhline(y = np.mean(Ic_P[0:4,0]), color = 'tab:red', linestyle = '--', label = "Average Ic before cycling = " +str(round(np.mean(Ic_P[0:4,0]),2)) + " A", lw = 5, alpha = 0.5)
+   
+
+#ax.scatter(All_files[int(File_num)].iloc[0,5],popt[0], label = "Ch. no: " + str(ch_no) + " Whole Core", s=500, color = "tab:red")
+ax.legend(fontsize = 40)
