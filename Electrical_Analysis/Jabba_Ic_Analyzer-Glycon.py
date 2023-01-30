@@ -6,6 +6,12 @@ Created on Thu Jan 12 12:30:53 2023
 @author: rdiazpacheco
 """
 #%% Dependencies
+import os
+os.chdir("G:\My Drive\Code\General_Code\Electrical_Analysis")
+from Jabba_ParserV2 import *
+from QS_Data_Index import *
+
+#%% Dependencies
 import csv
 import time
 import json
