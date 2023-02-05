@@ -20,18 +20,18 @@ num_files = len(all_files)
 All_files = {}
 no_ch = 8
 
-for j in range(0,12):  
-    one_filename = all_files[j]
-    All_files[j] = Extract_voltages_one_file(all_files,j,one_filename,no_ch,6,"CmdAmps.Value","VTapFilter","rVal","Load Cell [MPa]")
+#for j in range(0,12):  
+#    one_filename = all_files[j]
+#    All_files[j] = Extract_voltages_one_file(all_files,j,one_filename,no_ch,6,"CmdAmps.Value","VTapFilter","rVal","Load Cell [MPa]")
 
 
-for j in range(12,num_files):  
+for j in range(0,num_files):  
     one_filename = all_files[j]
     All_files[j] = Extract_voltages_one_file(all_files,j,one_filename,no_ch,6,"CmdAmps.Value","ChStat","Value","Load Cell [MPa]")
     
 tot_ch = no_ch
 #%% Looking at one core through Days
-QS = QS_A1_1
+QS = QS_A2
 name_index_1 = {}
 for i in range(0,len(all_files)):
     name_index_1[i] = [all_files[i].partition('\\')[2][0:8], all_files[i].partition('\\')[2][-16:-4]]
@@ -97,7 +97,7 @@ for i in range(0,len(QS)):
         
         #fname = fname1[:-4]
         plt.rcParams["figure.figsize"] = [25, 15]
-        fig.suptitle("Queen Snake A1",fontsize=40) #+ fname
+        fig.suptitle("Queen Snake A2",fontsize=40) #+ fname
         ax.tick_params(axis='x', labelsize=30)
         ax.tick_params(axis='y', labelsize=30)
         ax.set_axisbelow(True)
@@ -140,6 +140,7 @@ for i in range(0,len(QS)):
         
         
 #%% Critical Current / n values / r values
+
 Ic_n_R = []
 #QS = QS_A1_1
 for i in range(0,len(QS)):
@@ -185,21 +186,21 @@ ax = fig.gca()
 ax.cla()
 plt.rcParams["figure.figsize"] = [25, 15]
 #fig.title("Queen Snake A2",fontsize=40) #+ fname
-fig.suptitle("Queen Snake A1 - Resistance vs days",fontsize=50)
+fig.suptitle("Queen Snake A2 - Resistance vs days",fontsize=50)
 ax.tick_params(axis='x', labelsize=30)
 ax.tick_params(axis='y', labelsize=30)
 ax.set_axisbelow(True)
 
 #"""
 ax.xaxis.set_major_locator(MultipleLocator(1))
-ax.yaxis.set_major_locator(MultipleLocator(0.5))
+ax.yaxis.set_major_locator(MultipleLocator(1))
 ax.xaxis.set_minor_locator(AutoMinorLocator(5))
 ax.yaxis.set_minor_locator(AutoMinorLocator(5))
 ax.grid(which='major', color='#CCCCCC', linestyle='--')
 ax.grid(which='minor', color='#CCCCCC', linestyle=':')
 #"""
 ax.set_xlabel("Date", fontsize=35)
-ax.set_ylabel("R nOhms]", fontsize=35)
+ax.set_ylabel("R [nOhms]", fontsize=35)
 xx = 5
 expon = 1e9
 for i in range(0,len(R_summary.iloc[:,0])):

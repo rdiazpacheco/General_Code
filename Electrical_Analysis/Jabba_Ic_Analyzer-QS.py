@@ -20,7 +20,7 @@ folder_name = folder_path.partition('IcSearch/')[2]
 all_files = glob.glob(os.path.join(folder_path, "*.csv"))
 num_files = len(all_files)
 All_files = {}
-no_ch = 6
+no_ch = 8
 for j in range(0,num_files):  
     one_filename = all_files[j]
     #All_files[str(one_filename[-25:-4])+"{0}".format(j)] = Extract_voltages_one_file(one_filename,8,4,"CmdAmps.Value","ChStat","Value")
@@ -41,41 +41,50 @@ tot_ch = no_ch
 
 #%% Fitting without steps all in the file
 Tap_dist = {
-    1:0,
-    2:33.5,
-    3:29,
+    1:20,
+    2:20,
+    3:28,
     4:20,
-    5:33.25,
-    6:20,
-    7:0,
-    8:0
+    5:20,
+    6:29,
+    7:20,
+    8:20
     }
 #"""
 
 Tap_name = {
-    1:"N/A",
-    2:"QS_A1-QS_A2 PVJ 1",
-    3:"QS_A1-QS_A2 PVJ 2",
-    4:"QS_A1 Core 1",
-    5:"QS_A1-QS_A2 PVJ 3",
-    6:"QS_A2 Core 1",
-    7:"N/A",
-    8:"N/A", 
+    1:"QA_A2-Core_1 Fuzz",
+    2:"QA_A2-Core_2 Jacket",
+    3:"QS_A1-QS_A2 PVJ Jacket",
+    4:"QA_A1-Core_4 Jacket",
+    5:"QA_A1-Core_5 Jacket",
+    6:"QS_A1-QS_A2 PVJ",
+    7:"QA_A1-Core Fuzz",
+    8:"QA_A1-Core Jacket"
     }
 #"""
 
+Tap_color = {
+    1: "tab:blue",
+    2: "tab:red",
+    3: "tab:red",
+    4: "tab:orange",
+    5: "tab:pink",
+    6: "tab:blue",
+    7: "tab:blue",
+    8: "tab:red"
+    }
 
 all_files.sort()
 
 #F_start = int(all_files[0].partition('\\')[2][-5])
 F_start = 0
-ch_no = 6
+ch_no = 5
 Inv_taps = 1
 
 I_start = 300
 num_files = len(all_files)
-#ch_no = 6
-R_ind = 2200
+R_ind = 2400
 #End of noise Current Value
 N_ind = 500
 Ic_P = np.zeros([len(all_files),2])
@@ -84,10 +93,10 @@ Ic_RG = 2560
 IvsV = 10
 
 first_guess = [2000, 1e-6, 20, 1e-9]
-try: 
-    ax.cla()
-except:
-    j = 0
+#try: 
+#    ax.cla()
+#except:
+#    j = 0
 for j in range(0, len(all_files)):
     File_num = j+F_start
     Current_indices, Imax = find_start_end_ramp_onefile(All_files[int(File_num)],I_start)
@@ -121,7 +130,8 @@ for j in range(0, len(all_files)):
     
     fname = fname1[:-4]
     plt.rcParams["figure.figsize"] = [25, 15]
-    fig.suptitle(Tap_name[ch_no] + ": Ch. " + str(ch_no) + " - " + fname,fontsize=25)
+    #fig.suptitle(Tap_name[ch_no] + ": Ch. " + str(ch_no) + " - " + fname,fontsize=25)
+    fig.suptitle("Queen Snake Wedge PIT-VIPER Joint", fontsize = 40) #" (" + fname1[0:8] + ") - Jacket vs Fuzz", fontsize = 40)
     ax.tick_params(axis='x', labelsize=20)
     ax.tick_params(axis='y', labelsize=20)
     ax.set_axisbelow(True)
@@ -145,8 +155,8 @@ for j in range(0, len(all_files)):
    
     #Fitted Function
     ax.plot(fit_x, fit_y,
-            label = "Fit, n=" + str(round(popt[2],1)) + " Ic=" + str(round(popt[0],1)) + " [A], R=" + str(round(popt[3]*(1e9),1)) + " n\u03A9 ", 
-            linewidth = 7, linestyle = "-.", color = "tab:red", alpha = 1-(j/50))
+            label = "Ch." + str(ch_no)+ ": " + Tap_name[ch_no] + "; Fit, n=" + str(round(popt[2],1)) + " Ic=" + str(round(popt[0],1)) + " [A], R=" + str(round(popt[3]*(1e9),1)) + " n\u03A9 ", 
+            linewidth = int(15-ch_no), linestyle = "-.", color = Tap_color[ch_no], alpha = 1-(j/50))
 
 
     ax.axvline(x = round(popt[0],1), color = 'red', linewidth = 2,linestyle='-.')
@@ -156,43 +166,18 @@ for j in range(0, len(all_files)):
     
 ax.plot(All_files[int(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0].astype(float),
         np.full_like(All_files[int(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0],Tap_dist[ch_no]*1e-6),
-        linewidth = 3, linestyle = ":", color = "red", alpha = 1, 
-        label = "Vc = " + str(round(Tap_dist[ch_no],1)) + ", IC$_{avg}$= " + str(round(np.mean(Ic_P[:,0]),1)) + " [A]," +  "uV, Degradaton = " + str(round((100*(1-(np.mean(Ic_P[:,0])/Ic_RG))),2)) + "%")
+        linewidth = 3, linestyle = ":", color = Tap_color[ch_no], alpha = 1, 
+        label = "Vc = " + str(round(Tap_dist[ch_no],1)) + "uV, IC$_{avg}$= " + str(round(np.mean(Ic_P[:,0]),1)) + " [A]," +  " Degradaton = " + str(round((100*(1-(np.mean(Ic_P[:,0])/Ic_RG))),2)) + "%")
     
-ax.legend(fontsize = 30)#, ncols = 4)
+ax.legend(fontsize = 25) #, ncols = 2)
 
 
 #%% Fitting for joint resistance: Ch 1
-Tap_dist = {
-    1:0,
-    2:33.5,
-    3:29,
-    4:20,
-    5:33.25,
-    6:20,
-    7:0,
-    8:0
-    }
-#"""
-
-#""" 20221116
-
-Tap_name = {
-    1:"N/A",
-    2:"QS_A1-QS_A2 PVJ 1",
-    3:"QS_A1-QS_A2 PVJ 2",
-    4:"QS_A1 Core 1",
-    5:"QS_A1-QS_A2 PVJ 3",
-    6:"QS_A2 Core 1",
-    7:"N/A",
-    8:"N/A", 
-    }
-#"""
 
 all_files.sort()
 #F_start = int(all_files[0].partition('\\')[2][-5])
 F_start = 0
-ch_no = 3
+ch_no = 6
 Inv_taps = 1
 #Starting current
 I_start = 300
@@ -207,18 +192,18 @@ IvsV = 10
 
 
 first_guess = [40e-9, 1e-5]
-try: 
-    ax.cla()
-except:
-    j = 0
+#try: 
+#    ax.cla()
+#except:
+#    j = 0
 for j in range(0, len(all_files)):
-    File_num = F_start + j
+    File_num = j+F_start
     Current_indices, Imax = find_start_end_ramp_onefile(All_files[int(File_num)],I_start)
     I_indices_Noise = range_between_two_Ivalues(All_files[int(File_num)],I_start, N_ind)
     I_indices_R = range_between_two_Ivalues(All_files[int(File_num)],I_start, R_ind)
-    Avg_at_NoiseRange_per_tap = Mag_f*average_in_range(I_indices_Noise,All_files[int(File_num)],0,IvsV)
-    Avg_at_ResistiveRange_per_tap = Mag_f*average_in_range(I_indices_Noise,All_files[int(File_num)],0,IvsV)
-    Avg_inductive_V = Avg_at_NoiseRange_per_tap.iloc[ch_no-1]-(Inv_taps*Mag_f*offset_voltage_perCh(All_files[int(File_num)],1)[ch_no-1])
+    Avg_at_NoiseRange_per_tap = Mag_f*average_in_range(I_indices_Noise,All_files[int(File_num)],tot_ch,0,IvsV)
+    Avg_at_ResistiveRange_per_tap = Mag_f*average_in_range(I_indices_Noise,All_files[int(File_num)],tot_ch,0,IvsV)
+    Avg_inductive_V = Avg_at_NoiseRange_per_tap.iloc[ch_no-1]-(Inv_taps*Mag_f*offset_voltage_perCh(All_files[int(File_num)],1,tot_ch)[ch_no-1])
     
     x_data = All_files[int(File_num)].iloc[int(I_indices_R[0]):int(I_indices_R[1]),0].astype(float)
     y_data = signal.decimate(Inv_taps*Mag_f*(All_files[int(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no].astype(float)-Avg_at_NoiseRange_per_tap.iloc[ch_no-1]),IvsV)
@@ -259,7 +244,7 @@ for j in range(0, len(all_files)):
             label = Tap_name[ch_no] + ": R = " + str(round(popt[0]*(1e9),3)) + " n\u03A9 " + "(" + str(round((popt[0]*(1e9))/Tap_dist[ch_no],3)) + " n\u03A9 /cm)",
             linewidth = 2.5, linestyle = "--", color = "tab:red")
     
-    ax.legend(fontsize = 30)
+    ax.legend(fontsize = 20)
 
 
 #%%
