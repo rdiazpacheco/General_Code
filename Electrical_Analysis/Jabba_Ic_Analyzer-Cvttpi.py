@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Queen Snake Analysis
-Created on Wed Nov 23 17:25:30 2022
+Created on Tue Feb  7 11:16:39 2023
 
 @author: rdiazpacheco
+
+Cavattapi IC Test
 """
 
 #%%
@@ -13,8 +14,8 @@ os.chdir("G:\My Drive\Code\General_Code\Electrical_Analysis")
 from Jabba_ParserV2 import *
 from QS_Data_Index import *
 
-
 #%% Data import
+
 folder_path = filedialog.askdirectory()
 folder_name = folder_path.partition('IcSearch/')[2]
 all_files = glob.glob(os.path.join(folder_path, "*.csv"))
@@ -28,41 +29,33 @@ for j in range(0,num_files):
     All_files[j] = Extract_voltages_one_file(all_files,j,one_filename,no_ch,6,"CmdAmps.Value","ChStat","Value","Load Cell [MPa]")
     #All_files[str(j+1)].iloc[:,0].interpolate("linear", inplace = True)
 
-
-#butter filter specs
-T = 5.0         # Sample Period
-fs = 500.0       # sample rate, Hz
-cutoff = 2      # desired cutoff frequency of the filter, Hz ,      slightly higher than actual 1.2 Hz
-nyq = 0.5 * fs  # Nyquist Frequency
-order = 2       # sin wave can be approx represented as quadratic
-n = int(T * fs) # total number of samples
-
 tot_ch = no_ch
 
 #%% Fitting without steps all in the file
 Tap_dist = {
-    1:25,
-    2:15,
+    1:22,
+    2:15.5,
     3:20,
-    4:70,
+    4:71,
     5:40,
-    6:15,
+    6:15.5,
     7:22,
     8:20
     }
 #"""
 
 Tap_name = {
-    1:"QA_A2-Core_1 Fuzz",
-    2:"QA_A2-Core_2 Jacket",
-    3:"QS_A1-QS_A2 PVJ Jacket",
-    4:"QA_A1-Core_4 Jacket",
-    5:"QA_A1-Core_5 Jacket",
-    6:"QS_A1-QS_A2 PVJ",
-    7:"QA_A1-Core Fuzz",
-    8:"QA_A1-Core Jacket"
+    1:"Cppi_2-Lead 1",
+    2:"Cppi_2-Core_1",
+    3:"Cppi_2-Core_2",
+    4:"Cppi_2-Core_3",
+    5:"Cppi_2-Core_4",
+    6:"Cppi_2-Core_5",
+    7:"Cppi_2_Lead 2",
+    8:"Cppi_2-Core_6"
     }
 #"""
+
 
 Tap_color = {
     1: "tab:blue",
@@ -72,31 +65,31 @@ Tap_color = {
     5: "tab:pink",
     6: "tab:blue",
     7: "tab:blue",
-    8: "tab:red"
+    8: "tab:blue"
     }
 
 all_files.sort()
 
 #F_start = int(all_files[0].partition('\\')[2][-5])
 F_start = 0
-ch_no = 8
+ch_no = 3
 Inv_taps = 1
 
 I_start = 300
 num_files = len(all_files)
-R_ind = 4000
+R_ind = 3249
 #End of noise Current Value
 N_ind = 500
 Ic_P = np.zeros([len(all_files),2])
 Mag_f = 1
-Ic_RG = 3880
+Ic_RG = 3080
 IvsV = 10
 
-first_guess = [2000, 1e-6, 20, 1e-9]
+first_guess = [2900, 1e-6, 20, 1e-9]
 try: 
     ax.cla()
 except:
-    j = 0
+   j = 0
 for j in range(0, len(all_files)):
     File_num = j+F_start
     Current_indices, Imax = find_start_end_ramp_onefile(All_files[int(File_num)],I_start)
@@ -118,7 +111,7 @@ for j in range(0, len(all_files)):
     fit_x = np.linspace(I_start,R_ind,len(All_files[int(File_num)].iloc[int(IvsV*I_indices_R[0]):int(IvsV*I_indices_R[1]),ch_no]))    
     fit_y = func_w_R(fit_x, *popt)
 
-    first_guess = [4000, 1e-6, 15, 100e-9]
+    first_guess = [2900, 1e-6, 15, 100e-9]
     
     #fit function
     popt, pcov = curve_fit(func_w_R,x_data,y_data,p0=first_guess)
@@ -131,13 +124,13 @@ for j in range(0, len(all_files)):
     fname = fname1[:-4]
     plt.rcParams["figure.figsize"] = [25, 15]
     #fig.suptitle(Tap_name[ch_no] + ": Ch. " + str(ch_no) + " - " + fname,fontsize=25)
-    fig.suptitle("Queen Snake Wedge PIT-VIPER Joint", fontsize = 40) #" (" + fname1[0:8] + ") - Jacket vs Fuzz", fontsize = 40)
+    fig.suptitle("Cavatappi II (Ni)", fontsize = 40) #" (" + fname1[0:8] + ") - Jacket vs Fuzz", fontsize = 40)
     ax.tick_params(axis='x', labelsize=20)
     ax.tick_params(axis='y', labelsize=20)
     ax.set_axisbelow(True)
-    """
+    #"""
     ax.xaxis.set_major_locator(MultipleLocator(1000))
-    ax.yaxis.set_major_locator(MultipleLocator(0.000025))
+    ax.yaxis.set_major_locator(MultipleLocator(0.00005))
     ax.xaxis.set_minor_locator(AutoMinorLocator(5))
     ax.yaxis.set_minor_locator(AutoMinorLocator(5))
     ax.grid(which='major', color='#CCCCCC', linestyle='--')
@@ -177,14 +170,14 @@ ax.legend(fontsize = 25) #, ncols = 2)
 all_files.sort()
 #F_start = int(all_files[0].partition('\\')[2][-5])
 F_start = 0
-ch_no = 6
+ch_no = 7
 Inv_taps = 1
 #Starting current
 I_start = 300
 #End of resisitve Current Value
 num_files = len(all_files)
 IvsV = 1
-R_ind = 1500
+R_ind = 2000
 #End of noise Current Value
 N_ind = 500
 Mag_f = 1
@@ -192,10 +185,10 @@ IvsV = 10
 
 
 first_guess = [40e-9, 1e-5]
-#try: 
-#    ax.cla()
-#except:
-#    j = 0
+try: 
+    ax.cla()
+except:
+    j = 0
 for j in range(0, len(all_files)):
     File_num = j+F_start
     Current_indices, Imax = find_start_end_ramp_onefile(All_files[int(File_num)],I_start)
@@ -318,7 +311,7 @@ tot_ch = no_ch
 
 #%% One Channel at time stepped function
 #File number
-File_num = 8
+File_num = 2
 #Starting current
 I_start = 500
 #End of resisitve Current Value
