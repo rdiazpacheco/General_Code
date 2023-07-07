@@ -14,7 +14,8 @@ import json
 import copy
 import pandas as pd
 from tkinter import filedialog
-from influxdb import InfluxDBClient
+import scipy
+#from influxdb import InfluxDBClient
 import glob
 import os
 import numpy as np
@@ -175,24 +176,42 @@ def average_in_range(indices,data,total_number_ch,filt_before,IvsV):
     Avg_noise = pd.Series(Avg_noise1)                  
     return Avg_noise
 
-def average_value_at_step(data,step_currents,decay_time,IvsV):
+def average_value_at_step(data,step_currents,decay_time,IvsV,tot_ch,Imax):
     #step_currents is an array with the step values
-    aaa = []
+    data = data.replace(r'^\s*$', np.nan, regex=True)
+    average_Vstep_per_tap = []
+    aaa= []
     for i in range(0,len(step_currents)):
-        range_indices = range_between_two_Ivalues(data,step_currents[i]-1,step_currents[i]+1)
+        I_nA = []
+        I_nB = []   
+        I_ABs = np.zeros(2)
+        I_nAp = np.where(data.iloc[:,0].astype(float) > step_currents[i]-1)
+        I_nA.append(I_nAp[0])   
+        I_ABs[0] = int(min(I_nA[0]))
+        if step_currents[i] == Imax:
+            I_nBp = np.where(data.iloc[:,0].astype(float) == step_currents[i])
+            I_nB.append(I_nBp[0])
+            I_ABs[1] = int(max(I_nB[0]))
+        else: 
+            I_nBp = np.where(data.iloc[:,0].astype(float) > step_currents[i]+1)
+            I_nB.append(I_nBp[0])
+            I_ABs[1] = int(min(I_nB[0]))
+        range_indices = I_ABs
         average_in_step = []
         
         for j in range(1,tot_ch+1):
-            average_in_step.append(np.mean(data.iloc[int(IvsV*(range_indices[0]+decay_time)):int(IvsV*range_indices[1]),j]))
+            average_in_step.append(np.mean(data.iloc[int((IvsV*range_indices[0])+decay_time):int(IvsV*range_indices[1]),j]))
         aaa.append(pd.Series(average_in_step))
-        average_Vstep_per_tap = pd.concat(aaa, axis=1, ignore_index= False)  
+        average_Vstep_per_tap = pd.concat(aaa, axis=1, ignore_index= False) 
+        
     return average_Vstep_per_tap
+
 
 def func(x, Vc, Ic, V_floor, n):
     return Vc*(x/Ic)**n + V_floor
 
 def func_w_R(x, Vc, Ic, V_floor, n,R):
-    return Vc*(x/Ic)**n + V_floor + Vc*x*R
+    return Vc*(x/Ic)**n + V_floor + x*R
 
 def func_only_R(x,R,OffSet):
     return x*R+OffSet
