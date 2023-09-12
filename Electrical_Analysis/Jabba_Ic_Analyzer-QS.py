@@ -53,33 +53,34 @@ Tap_dist = {
     7:29.5,
     8:97.5
     }
+Steps1 = {
+    0:[500,1000,1500,2000,2500, 3000, 3100, 3200, 3300, 3400, 3500],
+    }
 
 #%% Weld sample
 
-
 Tap_name = {
-    1:"Overall",
-    2:"Weld-1.1",
-    3:"Weld-1.2",
-    4:"Weld-2.1",
-    5:"Weld-2.2",
-    6:"Weld-3.1",
-    7:"Weld-3.2",
-    8:"Weld-4.1"  
+    1:"POS Lead 1",
+    2:"POS Lead 2",
+    3:"NEG Lead 1",
+    4:"NEG Lead 1",
+    5:"QSC-PVJ-1",
+    6:"QSC-PVJ-2",
+    7:"QSC_1",
+    8:"QSC_2",
     }
-#"""
 
 
 Tap_dist = {
-    1:72.0,
-    2:9.0,
-    3:7.0,
-    4:25.5,
-    5:9.0,
-    6:14.5,
-    7:10.0,
-    8:10.6
-}
+    1:41,
+    2:41,
+    3:41,
+    4:41,
+    5:27.5,
+    6:31.55,
+    7:4,
+    8:5
+    }
 
 
 #%% Fitting without steps all in the file
@@ -89,13 +90,13 @@ all_files.sort()
 
 #F_start = int(all_files[0].partition('\\')[2][-5])
 F_start = 0
-ch_no = 5
+ch_no = 7
 Inv_taps = 1
-I_start = 250
+I_start = 500
 num_files = len(all_files)
-R_ind = 2699
+R_ind = 2599
 #End of noise Current Value
-N_ind = 300
+N_ind = 550
 Ic_P = np.zeros([len(all_files),2])
 Mag_f = 1
 Ic_RG = 2560
@@ -194,16 +195,16 @@ ax.legend(fontsize = 25) #, ncols = 2)
 all_files.sort()
 #F_start = int(all_files[0].partition('\\')[2][-5])
 F_start = 0
-ch_no = 5
+ch_no = 4
 Inv_taps = 1
 #Starting current
-I_start = 250
+I_start = 500
 #End of resisitve Current Value
 num_files = len(all_files)
 IvsV = 10
 R_ind = 1500
 #End of noise Current Value
-N_ind = 500
+N_ind = 550
 #Mag_f = 1e-5
 #IvsV = 1
 
@@ -262,10 +263,9 @@ for j in range(0, len(all_files)):
             label = Tap_name[ch_no] + ": R = " + str(round(popt[0]*(1e9),3)) + " n\u03A9 " + "(" + str(round((popt[0]*(1e9))/Tap_dist[ch_no],3)) + " n\u03A9 /cm)",
             linewidth = 2.5, linestyle = "--", color = "tab:red")
     
+     
     
-    
-    
-    ax.legend(fontsize = 20)
+    ax.legend(fontsize = 30)
 
 
 
@@ -288,9 +288,7 @@ ramp_rates = {
     0:100
 }
 
-Steps1 = {
-    0:[500,1000,1500,2000,2500, 3000, 3100, 3200, 3300, 3400, 3500],
-    }
+
 setup1 = 0
 Steps = Steps1[0]
 
@@ -299,7 +297,7 @@ ch_no = 1
 Inv_taps = 1
 I_start = 200
 num_files = len(all_files)
-R_ind = 2699
+R_ind = 3499
 #End of noise Current Value
 N_ind = 300
 Ic_P = np.zeros([len(all_files),3])
@@ -318,7 +316,7 @@ for j in range(0, len(all_files)):
     Avg_at_ResistiveRange_per_tap = Mag_f*average_in_range(I_indices_Noise,All_files[int(File_num)],tot_ch,0,IvsV)
     Avg_inductive_V = Avg_at_NoiseRange_per_tap.iloc[ch_no-1]-(Inv_taps*Mag_f*offset_voltage_perCh(All_files[int(File_num)],1,tot_ch)[ch_no-1])
 
-    Average_signal_at_steps = average_value_at_step(All_files[int(File_num)],Steps,500,IvsV,tot_ch,Imax)
+    Average_signal_at_steps = average_value_at_step(All_files[int(File_num)],Steps,600,IvsV,tot_ch,Imax)
     Avg_inductive_V = Avg_at_NoiseRange_per_tap.iloc[ch_no-1]-offset_voltage_perCh(All_files[int(File_num)],IvsV,tot_ch)[ch_no-1]
 
     #x-data here
